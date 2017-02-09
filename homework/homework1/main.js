@@ -6,11 +6,13 @@ The 8x8 matrix is named "map"
 Prizes are in "player.inventory"
 Start is the empty spot where the player is put at the beginning
 End is the boss fight event. Game will automatically end after this fight is completed. Boss fight is sufficiently difficult to require player to explore.
+unusedStringIndicatingTypeForNonChallengePositions is used to fulfill the requirement. The long name is to ensure it is not mistaken for a used variable.
 */
 
-mapWidth = 3;
-mapHeight = 3;
+var mapWidth = 8;
+var mapHeight = 8;
 var gameOver = false;
+var allDiscovered = true;
 
 var displayParent = document.getElementById("optional-container");
 if(!displayParent) {
@@ -26,6 +28,7 @@ var Combat = {
     var line = document.createElement("p");
     line.innerText = entry;
     combatLog.appendChild(line);
+    combatLog.scrollTop -= 20;
   }
 }
 
@@ -55,7 +58,7 @@ var map = [];
 for(var i = 0; i < mapWidth; i++) {
   map[i] = [];
   for(var j = 0; j < mapHeight; j++) {
-    map[i].push({ event: null, explored: false, passable: true });
+    map[i].push({ event: null, explored: allDiscovered, passable: true, unusedStringIndicatingTypeForNonChallengePositions: "Empty" });
   }
 }
 
@@ -68,7 +71,6 @@ while(events.length != 0) {
   while(true) {
     var x = Math.round(Math.random() * (mapWidth - 1));
     var y = Math.round(Math.random() * (mapHeight - 1));
-    console.log([x,y]);
     if(map[x][y].event === null) {
       map[x][y].event = event;
       console.log(event.name + " at " + x + ", " + y);
@@ -96,6 +98,7 @@ while(true) {
 
   if(map[x][y].event === null && player.x != x && player.y != y) {
     map[x][y].passable = false;
+    unusedStringIndicatingTypeForNonChallengePositions = "wall";
     console.log("Wall at " + x + ", " + y);
     break;
   }
@@ -156,12 +159,14 @@ function round() {
     return;
   }
   if(destTile.event) {
-    if(!confirm("You have a feeling the area ahead might contain something interesting. Would you like to proceed?")) return;
-    destTile.event.run();
     if(!destTile.event.done) {
-      destTile.explored = true;
-      Combat.log("Player runs into enemies at (" + dest.x + ", " + dest.y + ") and flees.");
-      return;
+      if(!confirm("You have a feeling the area ahead might contain something interesting. Would you like to proceed?")) return;
+      destTile.event.run();
+      if(!destTile.event.done) {
+        destTile.explored = true;
+        Combat.log("Player runs into enemies at (" + dest.x + ", " + dest.y + ") and flees.");
+        return;
+      }
     }
   }
 
@@ -196,6 +201,7 @@ function getEvents() {
           displayParent.appendChild(deathMessage);
           Combat.log("Player died from 2 damage by idiotically touching a legendary sword.");
           gameOver = true;
+          return;
         } else {
           alert("The katana is sharp enough that you cut deeper than planned, reaching the bone of your finger.");
         }
@@ -206,6 +212,72 @@ function getEvents() {
     this.done = true;
   };
   events.push(muramasa);
+
+  var doll = new Event("Doll", 
+    "In a clearing in the middle of a forest, you see a doll about 14 inches tall standing outside a staircase leading into the ground. It is wearing a black and white mask and is dressed in a tuxedo. It begins to approach you slowly.");
+  doll.run = function() {
+    alert(doll.text);
+    if(confirm("Would you like to attack the doll?")) {
+      alert("The doll explodes upon being hit but is far enough that is does not hurt you. After it explodes, about 50 more dolls march up the staircase in the ground one by one. You manage to destroy all of them without being injured.");
+      if(confirm("Do you want to enter the dungeon under the staircase?")) {
+        alert("The staircase leads to an underground hallway made of smoothly carved stone. The entire area is well lit by torches as if it were populated. At the end of the hall, you find a man dressed in the same way as the dolls, wearing a similar mask. He says that he is disappointed that a single adventurer will be the one to complete his story. He crumbles into dust, leaving only his mask.");
+        if(confirm("Would you like to equip the mask left on the ground.")) {
+          alert("Upon equipping the mask, you feel your mind being invaded by the demon that left the mask. You are unsure if you will regain control.")
+          if(Math.random() > 0.7) {
+            player.inventory.push("Mask of Vanir");
+            player.ac += 12;
+            player.hp += 60;
+            Combat.log("Player defeats demon and gains Mask of Vanir.");
+            alert("You manage to wrestle control from the demon. Your soul is now also fused the mask, making you immune to damage anywhere else.");
+          } else {
+            alert("Your conciousness slowly fades as the demon absorbs your soul.");
+            var deathMessage = document.createElement("h2");
+            deathMessage.style.color = "#ff0000";
+            deathMessage.innerText = "Your soul was absorbed by a demon.";
+            displayParent.appendChild(deathMessage);
+            Combat.log("Player has soul eaten by a demon.");
+            gameOver = true;
+            return;
+          }
+        } else {
+          alert("You leave the mask where it is in the dungeon and leave.");
+        }
+      } else {
+        alert("You leave emptyhanded but uninjured.");
+      }
+    } else {
+      alert("The doll approaches you and grabs your leg. You find it rather cute, until the doll suddenly explodes.");
+      player.hp -= 4;
+      if(player.hp <= 0) {
+        alert("The doll's explosion killed you.");
+        var deathMessage = document.createElement("h2");
+        deathMessage.style.color = "#00ff00";
+        deathMessage.innerText = "You died by letting a suspicious doll explode on you.";
+        displayParent.appendChild(deathMessage);
+        Combat.log("Player dies from doll explosion.");
+        gameOver = true;
+        return;
+      } else {
+        alert("After the doll explodes, you run away from the clearing in fear.")
+      }
+    }
+    this.done = true;
+  };
+  events.push(doll);
+
+  var bridgeMan = new Event("Bridge and Trolley", 
+    "You enter a city filled with orcs. A large bridge with fewer orcs on it leads through the city. You take this bridge partway through the city. You are careful the maintain your position close the the center since a fall would be lethal.");
+  bridgeMan.run = function() {
+    alert(bridgeMan.text);
+    alert("Partway along the bridge, you see what appears to be an orc captain weighing over 800 pounds. You hear him yell, \"Start the trolley!\"  Over the edge of the bridge, you see a small train on a path to collide with a group of 20 human slaves. The orc captain is positioned right on the edge of the bridge over the train tracks between the train and the slaves.");
+    if(confirm("Would you like to push the orc captain over the edge of the bridge?")) {
+      alert("The orc captain stops the trolley and dies in the process.");
+    } else {
+      alert("The train hits the slaves, and the orc captain appears to be overjoyed at the gruesome sight that has unfolded below.");
+    }
+    this.done = true;
+  };
+  events.push(bridgeMan);
 
   var cobraReward = function() {
     alert("Inside the cabin, you find a vial filled with a murky liquid labeled \"health serum.\"")
@@ -224,10 +296,25 @@ function getEvents() {
   );
   events.push(cobra);
 
+  var squirrelReward = function() {
+    alert("You take the squirrel's corpse with you as a \"prize.\"")
+    Combat.log("Player acquires squirrel.");
+    player.inventory.push("Squirrel corpse");
+  };
+  var squirrel = new CombatEvent("Squirrel", 
+    "You encounter a man who touches a tree. He suddenly turns into a squirrel that charges at you.",
+    [(new Character("Squirrel", 6, 12, 0, 0))],
+    squirrelReward
+  );
+  events.push(squirrel);
+
+
   var knightReward = function() {
     if(confirm("Would you like to take the knight's prized armor?")) {
+      player.inventory.push("Adamantium full-plate");
       player.ac += 9;
-      alert("Now you should be much harder to damage.");
+      player.attack -= 1;
+      alert("Now you should be much harder to damage, but the full-plate does slightly limit your movement.");
       Combat.log("Player equips adamantium full-plate.");
     } else {
       alert("Why would you pass up some good armor? In any case, you leave with nothing.");
@@ -235,10 +322,55 @@ function getEvents() {
   };
   var knight = new CombatEvent("Knight", 
     "You encounter a knight who proclaims that he is invincible due to his adamantium armor. He draws his sword and attacks.",
-    [(new Character("Knight", 20, 19, 4, 4))],
+    [(new Character("Knight", 20, 19, 4, 3))],
     knightReward
   );
   events.push(knight);
+
+  var infectedReward = function() {
+    if(confirm("Would you like to enter the tower?")) {
+      if(confirm("Inside the tower, you find a small table. Atop it are a mastercrafted crossbow and mask. Would you like to equip them?")) {
+        player.inventory.push("Mastercrafted crossbow");
+        player.inventory.push("Optical mask");
+        player.ac += 1;
+        player.attack += 4;
+        alert("It seems this mask has a lense built into allowing you to magnify your view. This and the crossbow should be useful.");
+        Combat.log("Player equips optical mask and crossbow.");
+      }
+    } else {
+      alert("You leave wondering what you could have found inside the tower.");
+    }
+  };
+  var infected = new CombatEvent("Infected", 
+    "In the middle of a ruined city, you find a tower surrounded by people. They seem to be infected with some sort of disease affecting their skin, and they all begin running toward you when they spot you.",
+    [
+      (new Character("Weeper", 13, 9, 3, 0)), 
+      (new Character("Weeper", 9, 9, 3, 0)),
+      (new Character("Weeper", 10, 9, 3, 0)),
+      (new Character("Weeper", 8, 9, 3, 0)),
+    ],
+    infectedReward
+  );
+  events.push(infected);
+
+  var bossReward = function() {
+    alert("You have defeated Oboro. You have finally won.");
+    var winMessage = document.createElement("h2");
+    winMessage.style.color = "#00ff00";
+    winMessage.innerText = "You defeated Oboro, the Messenger of the Heavens.";
+    displayParent.appendChild(winMessage);
+    Combat.log("Player defeats Oboro.");
+    gameOver = true;
+    return;
+  };
+  var boss = new CombatEvent("Oboro", 
+    "You come across what was once a wide open field, when you visited it before. Now, it is strewn with countless corpses. Each of the corpses has the same slash, going from the bottom left of their torsos to the top right, about 3 inches deep. Standing at the center of this field is one man, holding a sword in his right hand. He runs towards you and begins to attack.",
+    [
+      (new Character("Oboro \"Messenger of the Heavens\"", 200, 30, 20, 7))
+    ],
+    bossReward
+  );
+  events.push(boss);
 
   return events;
 }
@@ -320,8 +452,24 @@ function CombatEvent(name, text, characters, end) {
         var attackRoll = character.attackRoll();
         if(attackRoll >= player.ac) {
           var damageRoll = character.damageRoll();
+          if(Dice.d20() === 20) damageRoll *= 3;
           player.hp -= damageRoll;
           Combat.log(player.name + " takes " + damageRoll + " damage from " + character.name + ", leaving " + player.hp + " HP left.");
+
+          if(character.name === "Oboro \"Messenger of the Heavens\"") {
+            player.hp -= 7;
+            Combat.log(player.name + " takes additional 7 damage due to Oboro's masterful targeting of " + player.name + "'s pressure points.");
+          }
+
+          if(player.hp <= 0) {
+            Combat.log(player.name + " is killed by " + character.name);
+            gameOver = true;
+            var deathMessage = document.createElement("h2");
+            deathMessage.style.color = "#ff0000";
+            deathMessage.innerText = "You died while fighting " + character.name;
+            displayParent.appendChild(deathMessage);
+            return;
+          }
         } else {
           Combat.log(character.name + " fails to hit " + player.name);
         }
@@ -341,6 +489,7 @@ function CombatEvent(name, text, characters, end) {
         Combat.log(character.name + " is defeated.");
         characters.splice(0, 1);
       }
+
     }
 
     this.done = true;
@@ -366,7 +515,7 @@ function display() {
     var li = document.createElement("li");
     li.innerHTML = player.inventory[i];
     inventoryContainer.appendChild(li);
-  }     
+  }
 
   var table = document.getElementById("map-table");
   if(table) {
@@ -374,6 +523,7 @@ function display() {
   } else {
     table = document.createElement("table");
     table.id = "map-table";
+    table.className += "table table-bordered";
 
     displayParent.appendChild(table);
   }
@@ -386,20 +536,35 @@ function display() {
       var displayCell = document.createElement("td");
       if(player.x === j && player.y === i) {
         displayCell.innerText = player.name;
+        displayCell.className = "player";
       } else if(mapCell.explored === true) {
         if(mapCell.event) {
           displayCell.innerHTML = mapCell.event.name;
+          displayCell.className = "event";
         } else if(!mapCell.passable) {
           displayCell.innerHTML = "Wall";
+          displayCell.className = "event";
         } else {
           displayCell.innerHTML = "Empty";
         }
       } else {
         displayCell.innerHTML = "Unknown";
+        displayCell.className = "unknown";
       }
 
       row.appendChild(displayCell);
     }
     table.appendChild(row);
   }
+
+  var hpDisplay = document.getElementById("hp-display");
+  if(hpDisplay) {
+    hpDisplay.innerHTML = "";
+  } else {
+    hpDisplay = document.createElement("h4");
+    hpDisplay.id = "hp-display";
+
+    displayParent.appendChild(hpDisplay);
+  }     
+  hpDisplay.innerText = player.name + " has " + player.hp + " HP left.";
 }
