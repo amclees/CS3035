@@ -10,7 +10,11 @@ var game = function(mapWidth, mapHeight) {
 
   var events = getEvents();
 
-  var playerName = "Player";
+  var playerName;
+  do {
+    playerName = prompt("Please enter your player's name.");
+  } while(!playerName);
+
   var player = new Player(playerName, 15, 10);
 
   var map = [];
@@ -50,11 +54,33 @@ var game = function(mapWidth, mapHeight) {
     }
   }
   
+  display();
   main();
 
   function main() {
-    
+    var move;
+    do {
+      var moveText = "Please enter your move. Enter: \n  \"n\" to go north \n  \"s\" to go south \n  \"e\" to go east \n  \"w\" to go west";
+      move = prompt(moveText);
+    } while((!move) || !(move === "n" || move === "s" || move === "e" || move === "w"));
+    var destMap = {
+      "n": { x: player.x - 1, y: player.y },
+      "s": { x: player.x + 1, y: player.y },
+      "e": { x: player.x, y: player.y + 1},
+      "w": { x: player.x, y: player.y - 1 },
+    }
+    var dest = destMap[move];
+    if((dest.x < 0) || (dest.y < 0) || (dest.x > mapWidth - 1) || (dest.y > mapHeight - 1)) main();
+    player.x = dest.x;
+    player.y = dest.y;
+    var destTile = map[dest.x][dest.y];
+    if(destTile.event) {
+      if(!prompt("You have a feeling the area ahead might contain something interesting. Would you like to proceed?")) main();
+      destTile.event.run();
+    }
+    destTile.explored = true;
 
+    display();
     main();
   }
 
@@ -105,6 +131,23 @@ var game = function(mapWidth, mapHeight) {
   };
 
   function display() {
+    var displayParent = document.getElementById("optional-container");
+    if(!displayParent) {
+      displayParent = document.body;
+    }
+
+    var inventoryContainer = document.getElementById("inventory-list");
+    if(!inventoryContainer) {
+      console.log("No Inventory Container in HTMl.");
+      return;
+    }
+    inventoryContainer.innerHTML = "";
+    for(var i = 0; i < player.inventory.length; i++) {
+      var li = document.createElement("li");
+      li.innerHTML = player.inventory[i];
+      inventoryContainer.appendChild(li);
+    }     
+
     var table = document.getElementById("map-table");
     if(table) {
       table.innerHTML = "";
@@ -112,12 +155,7 @@ var game = function(mapWidth, mapHeight) {
       table = document.createElement("table");
       table.id = "map-table";
 
-      var optionalContainer = document.getElementById("optional-container");
-      if(optionalContainer) {
-        optionalContainer.appendChild(table);
-      } else {
-        document.appendChild(table);
-      }
+      displayParent.appendChild(table);
     }
 
     for(var i = 0; i < mapWidth; i++) {
@@ -126,7 +164,9 @@ var game = function(mapWidth, mapHeight) {
         var mapCell = map[i][j];
 
         var displayCell = document.createElement("td");
-        if(mapCell.explored === true) {
+        if(player.x === i && player.y === j) {
+          displayCell.innerText = player.name;
+        } else if(mapCell.explored === true) {
           if(mapCell.event) {
             displayCell.innerHTML = mapCell.event.name;
           } else {
