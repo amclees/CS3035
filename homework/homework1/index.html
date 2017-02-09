@@ -11,20 +11,26 @@
       td {
         padding: 12px;
       }
+      #combat-log {
+        overflow: scroll;
+        height: 300px;
+        width: 700px;
+      }
     </style>
-
-    <script src="main.js"></script>
   </head>
   <body>
     <div class="container" id="optional-container">
       <h3>Text Adventure</h3>
+      <button class="btn btn-success" onclick="round()">Next Round</button>
       <h4>Inventory</h4>
-      <ul id="inventory-list"></ul>
+      <ul id="inventory-list">
+        <li>No Items Yet</li>
+      </ul>
+      <h4>Combat Log</h4>
+      <div id="combat-log">
+      </div>
       <h4>Map</h4>
     </div>
-
-    <script>
-      game(8, 8);
-    </script>
+    <script src="main.js"></script>
   </body>
 </html>
