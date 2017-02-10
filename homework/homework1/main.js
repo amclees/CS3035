@@ -9,28 +9,79 @@ End is the boss fight event. Game will automatically end after this fight is com
 unusedStringIndicatingTypeForNonChallengePositions is used to fulfill the requirement. The long name is to ensure it is not mistaken for a used variable.
 */
 
+//Use the Custom death msgs for stuff
+//TODO All have pics
+//Hotkey for moves - Done
+// Omen correlates with effect
+//Running prompt
+
 var mapWidth = 8;
 var mapHeight = 8;
 var gameOver = false;
-var allDiscovered = true;
+var allDiscovered = false;
 
-var displayParent = document.getElementById("optional-container");
-if(!displayParent) {
-  displayParent = document.body;
-}
-var combatLog = document.getElementById("combat-log");
-if(!combatLog) {
-  console.log("Please connect a combat-log id-ed div");
-}
+var displayParent = document.createElement("div");
+displayParent.classList.add("container");
+
+var title = document.createElement("h3");
+title.innerText = "Text Adventure";
+displayParent.appendChild(title);
+
+var button = document.createElement("button");
+button.classList.add("btn");
+button.classList.add("btn-success");
+button.innerText = "Next Round";
+button.onclick = function() { round(); };
+displayParent.appendChild(button);
+
+var keyShortcutLabel = document.createElement("p");
+keyShortcutLabel.innerText = "You can also press <spacebar> to continue to the next round.";
+displayParent.appendChild(keyShortcutLabel);
+
+var combatHeader = document.createElement("h4");
+combatHeader.innerText = "Play Log";
+displayParent.appendChild(combatHeader);
+
+var combatLog = document.createElement("div");
+combatLog.id = "combat-log";
+displayParent.appendChild(combatLog);
+
+var hpDisplay = document.createElement("h4");
+hpDisplay.id = "hp-display";
+displayParent.appendChild(hpDisplay);
+
+var mapHeader = document.createElement("h4");
+mapHeader.innerText = "Map";
+displayParent.appendChild(mapHeader);
+
+var table = document.createElement("table");
+table.id = "map-table";
+table.className += "table table-bordered";
+displayParent.appendChild(table);
+
+var inventoryHeader = document.createElement("h4");
+inventoryHeader.innerText = "Inventory";
+displayParent.appendChild(inventoryHeader);
+
+var inventoryList = document.createElement("ul");
+inventoryList.id = "inventory-list";
+displayParent.appendChild(inventoryList);
+
+document.body.appendChild(displayParent);
+
 
 var Combat = {
-  log: function(entry) {
+  log: function(entry, className) {
     var line = document.createElement("p");
     line.innerText = entry;
+    if(className) {
+      line.className = className;
+    }
     combatLog.appendChild(line);
-    combatLog.scrollTop -= 20;
+    
+    combatLog.scrollTop = line.offsetTop;
   }
-}
+};
 
 var Dice = {
   d20: function(number) {
@@ -65,6 +116,12 @@ for(var i = 0; i < mapWidth; i++) {
 if(map.length * map[0].length < events.length + 10) {
   console.log("Insufficient map size to host events. Please try a bigger map.");
 }
+
+var desiredEvents = (mapWidth * mapHeight) / 4;
+var healingEvents = desiredEvents - events.length;
+for(var i = 0; i < healingEvents; i++) {
+  events.push(new HealingEvent());
+} 
 
 while(events.length != 0) {
   var event = events.pop();
@@ -120,7 +177,7 @@ function round() {
     "n": { x: player.x, y: player.y - 1 },
     "s": { x: player.x, y: player.y + 1 },
     "e": { x: player.x + 1, y: player.y },
-    "w": { x: player.x - 1, y: player.y },
+    "w": { x: player.x - 1, y: player.y }
   }
   var dest = destMap[move];
   if((dest.x < 0) || (dest.y < 0) || (dest.x > mapWidth - 1) || (dest.y > mapHeight - 1)) {
@@ -130,29 +187,31 @@ function round() {
   
   var destTile = map[dest.x][dest.y];
   if(!destTile.passable) {
-    destTile.explored = true;
-    alert("Upon entering the area, you see a small wall. Beyond the wall is a large, empty area. The wall is only 4 feet, something you could easily scale, but you somehow feel that you cannot cross it.");
-    if(confirm("Would you like to try crossing the small wall?")) {
-      alert("Upon closer examination, you find that the wall has a very odd texture. Even above the wall, this same texture persists. It feels almost like an enourmous amount of large shields were connected together. For some reason however, you cannot seem to see them nor anything behind them.");
-      var quiz = prompt("If you could choose one word to describe the behavior of these tower shields, what would it be?");
-      if(quiz.trim().toLowerCase() === "broken") {
-        alert("When the word broken comes to your mind, you glance at your hand and notice it is invisible.");
-        player.ac += 10;
-      } else {
-        alert("Why would a word you think of be important? You return to where you were before you visited the wall.");
-      }
-    } else {
-      player.ac -= 4;
-      alert("Your lack of curiosity makes you more susceptible to your enemies. You might have been able to dodge before, but now you are simply a slug.");
-      var slugImg = document.createElement("img");
-      slugImg.src = "https://cdn.psychologytoday.com/sites/default/files/field_blog_entry_images/slug_0.jpg";
-      slugImg.alt = "slug";
-      slugImg.width = 300;
-      slugImg.height = 150;
-      var desc = document.createElement("p");
-      desc.innerText = "You became a ";
-      combatLog.appendChild(desc);
-      combatLog.appendChild(slugImg);
+      if(!destTile.explored) {
+        destTile.explored = true;
+        alert("Upon entering the area, you see a small wall. Beyond the wall is a large, empty area. The wall is only 4 feet, something you could easily scale, but you somehow feel that you cannot cross it.");
+        if(confirm("Would you like to try crossing the small wall?")) {
+          alert("Upon closer examination, you find that the wall has a very odd texture. Even above the wall, this same texture persists. It feels almost like an enourmous amount of large shields were connected together. For some reason however, you cannot seem to see them nor anything behind them.");
+          var quiz = prompt("If you could choose one word to describe the behavior of these tower shields, what would it be?");
+          if(quiz.trim().toLowerCase() === "broken") {
+            alert("When the word broken comes to your mind, you glance at your hand and notice it is invisible.");
+            player.ac += 10;
+          } else {
+            alert("Why would a word you think of be important? You return to where you were before you visited the wall.");
+          }
+        } else {
+          player.ac -= 4;
+          alert("Your lack of curiosity makes you more susceptible to your enemies. You might have been able to dodge before, but now you are simply a slug.");
+          var slugImg = document.createElement("img");
+          slugImg.src = "https://cdn.psychologytoday.com/sites/default/files/field_blog_entry_images/slug_0.jpg";
+          slugImg.alt = "slug";
+          slugImg.width = 300;
+          slugImg.height = 150;
+          var desc = document.createElement("p");
+          desc.innerText = "You became a ";
+          combatLog.appendChild(desc);
+          combatLog.appendChild(slugImg);
+        }
     }
     Combat.log("Player runs into a wall at (" + dest.x + ", " + dest.y + ") and has to turn back.");
     display();
@@ -162,9 +221,15 @@ function round() {
     if(!destTile.event.done) {
       if(!confirm("You have a feeling the area ahead might contain something interesting. Would you like to proceed?")) return;
       destTile.event.run();
+      if(gameOver) {
+        destTile.explored = true;
+        display();
+        return;
+      }
       if(!destTile.event.done) {
         destTile.explored = true;
-        Combat.log("Player runs into enemies at (" + dest.x + ", " + dest.y + ") and flees.");
+        Combat.log("Player leaves (" + dest.x + ", " + dest.y + ") and returns to their previous location.");
+        display();
         return;
       }
     }
@@ -177,6 +242,13 @@ function round() {
 
   display();
 }
+
+document.onkeydown = function(e) {
+  if(e.keyCode === 32) {
+    round();
+  }
+}
+
 
 function getEvents() {
   var events = [];
@@ -193,23 +265,24 @@ function getEvents() {
       Combat.log("Player obtains Muramasa.");
       if(confirm("Would you like to test the sharpness with your finger?")) {
         player.hp -= 2;
-        if(player.hp < 0) {
+        if(player.hp <= 0) {
           alert("You were so close to death that a small cut killed you.");
           var deathMessage = document.createElement("h2");
           deathMessage.style.color = "#3366ff";
           deathMessage.innerText = "You died by touching a katana with your finger.";
           displayParent.appendChild(deathMessage);
-          Combat.log("Player died from 2 damage by idiotically touching a legendary sword.");
+          Combat.log("Player dies from 2 damage by idiotically touching a legendary sword.");
           gameOver = true;
           return;
         } else {
           alert("The katana is sharp enough that you cut deeper than planned, reaching the bone of your finger.");
         }
-      } 
+      }
+      this.done = true; 
     } else {
       alert("Reluctantly, you leave what could have made an excellent weapon in the chest.");
     }
-    this.done = true;
+    
   };
   events.push(muramasa);
 
@@ -265,8 +338,8 @@ function getEvents() {
   };
   events.push(doll);
 
-  var bridgeMan = new Event("Bridge and Trolley", 
-    "You enter a city filled with orcs. A large bridge with fewer orcs on it leads through the city. You take this bridge partway through the city. You are careful the maintain your position close the the center since a fall would be lethal.");
+  var bridgeMan = new Event("Orc Bridge", 
+    "You enter a city filled with orcs. A large bridge with fewer orcs on it leads through the city. You take this bridge partway through the city. You are careful to maintain your position close the the center since a fall would be lethal.");
   bridgeMan.run = function() {
     alert(bridgeMan.text);
     alert("Partway along the bridge, you see what appears to be an orc captain weighing over 800 pounds. You hear him yell, \"Start the trolley!\"  Over the edge of the bridge, you see a small train on a path to collide with a group of 20 human slaves. The orc captain is positioned right on the edge of the bridge over the train tracks between the train and the slaves.");
@@ -291,7 +364,7 @@ function getEvents() {
   };
   var cobra = new CombatEvent("Iron Cobra", 
     "You encounter an Iron Cobra outside a small log cabin. It is a 7 foot long cobra made entirely of iron except for an enchanted core created by an artifacer. They usually are created to guard valuables.",
-    [(new Character("Iron Cobra", 27, 16, 11, 3))],
+    [(new Character("Iron Cobra", 27, 16, 7, 2))],
     cobraReward
   );
   events.push(cobra);
@@ -364,7 +437,7 @@ function getEvents() {
     return;
   };
   var boss = new CombatEvent("Oboro", 
-    "You come across what was once a wide open field, when you visited it before. Now, it is strewn with countless corpses. Each of the corpses has the same slash, going from the bottom left of their torsos to the top right, about 3 inches deep. Standing at the center of this field is one man, holding a sword in his right hand. He runs towards you and begins to attack.",
+    "You come across what was once a wide open field, when you visited it before. Now, it is strewn with countless corpses. Each of the corpses has the same cut, going from the bottom left of their torsos to the top right, about 3 inches deep. Standing at the center of this field is one man, holding a sword in his right hand. He runs towards you and begins to attack.",
     [
       (new Character("Oboro \"Messenger of the Heavens\"", 200, 30, 20, 7))
     ],
@@ -392,6 +465,22 @@ function Player(name, hp, ac) {
 
     damageRoll: function() {
       return Dice.d6() + this.damage;
+    },
+
+    takeDamage(amount, damageSource, customMessage) {
+      this.hp -= amount;
+      Combat.log(name + " takes " + amount + " damage from " + damageSource + ", leaving " + this.hp + " HP left.");
+      if(this.hp <= 0) {
+        var deathMessage = document.createElement("h2");
+        deathMessage.style.color = "#3366ff";
+        deathMessage.innerText = (customMessage ? customMessage : "You died at the hand of " + damageSource);
+        displayParent.insertBefore(deathMessage, displayParent.childNodes[0]);
+        Combat.log("Player dies.");
+        gameOver = true; 
+        return true;
+      } else {
+        return false;
+      }
     }
   };
 };
@@ -403,6 +492,7 @@ function Event(name, text) {
     done: false,
 
     run: function() {
+      alert(this.text);
       done = true;
       return;
     }
@@ -426,6 +516,65 @@ function Character(name, hp, ac, attack, damage) {
       return Dice.d6() + this.damage;
     }
   }
+}
+
+function HealingEvent() {
+  var healingEvent;
+  var namePrefixes = ["Dark", "Murky", "Shadow", "Dubious", "Final", "Demon", "シ", "Health", "n00b", "Scared", "Scarred"];
+  var title = (namePrefixes[Math.floor(Math.random() * namePrefixes.length)]) + " Potion";
+  var settings = ["You find a potion in the center of a ruined stone amphitheater. ",
+  "You discover a potion in a small alcove carved into a tree. ",
+  "You see a potion lying in the middle of a field. ",
+  "You find a potion atop a stone pedestal on the summit of a mountain. ",
+  "You find a potion in a cave. You painstakingly crawl through the cave to reach the potion. "];
+  var potionLooks = ["The potion is in an opaque wooden jug with a straw sticking out the top. ",
+  "The potion is in a clear, pristine crystal vial. The contained liquid is mud-colored. ",
+  "The potion is in an opaque triangular prism shaped bottle. ",
+  "The potion is shaped like a sword with the tip of the blade serving as a straw. ",
+  "The potion is in a glass. It is a jet black liquid that is bubbling wildly. "
+  ];
+  var omens = ["As you approach the potion, an owl flies above you.",
+  "As you approach the potion, nothing happens.",
+  "You trip as you approach the potion, and you take a large amount of happiness damage.",
+  "Your name changes as you approach the potion."];
+  var text = settings[Math.floor(Math.random() * settings.length)] 
+  + potionLooks[Math.floor(Math.random() * potionLooks.length)] 
+  + omens[Math.floor(Math.random() * omens.length)];
+  healingEvent = new Event(title, text);
+
+  var hpBonus = Math.random() * 15;
+  var acPenalty = Math.random() * 3;
+  var beneficial = (Math.random() > 0.3);
+  healingEvent.run = function() {
+    alert(this.name + "\n\n" + this.text);
+    if(this.text.indexOf("Your name changes as you approach the potion.") != -1) {
+        player.name = "";
+        for(var i = 0; i < 1 + (Math.random() * 20); i++) {
+          player.name += "あんパン";
+        }
+    }
+    display();
+    if(confirm("Would you like to drink the potion?")) {
+      var speed = prompt("Potions' effects usually are stronger the faster you drink them. On a continuous scale of 1-10, you quickly would you like to drink the potion?");
+      if((!speed) || isNaN(speed) || (speed < 1) || (speed > 10)) {
+        player.ac -= 5;
+        player.inventory.push("Physical Manifestation of your Headache earned by failing to think of a number 1-10 when drinking a " + this.name);
+        alert("You try to think of how fast to drink the potion, but you fail. You leave sadly with a painful, slowing headache. It will be harder to dodge now.");
+        return;
+      }
+      if(beneficial) {
+        player.hp += Math.floor(hpBonus * speed);
+        alert("You feel reinvigorated.");
+      } else {
+        player.ac -= acPenalty * speed;
+        alert("You feel slowed. It will be harder to dodge now.")
+      }
+    } else {
+      alert("You leave the potion where it is.");
+    }
+    this.done = true;
+  };
+  return healingEvent;
 }
 
 function CombatEvent(name, text, characters, end) {
@@ -452,24 +601,17 @@ function CombatEvent(name, text, characters, end) {
         var attackRoll = character.attackRoll();
         if(attackRoll >= player.ac) {
           var damageRoll = character.damageRoll();
-          if(Dice.d20() === 20) damageRoll *= 3;
-          player.hp -= damageRoll;
-          Combat.log(player.name + " takes " + damageRoll + " damage from " + character.name + ", leaving " + player.hp + " HP left.");
 
           if(character.name === "Oboro \"Messenger of the Heavens\"") {
-            player.hp -= 7;
+            damageRoll += 7;
             Combat.log(player.name + " takes additional 7 damage due to Oboro's masterful targeting of " + player.name + "'s pressure points.");
           }
 
-          if(player.hp <= 0) {
-            Combat.log(player.name + " is killed by " + character.name);
-            gameOver = true;
-            var deathMessage = document.createElement("h2");
-            deathMessage.style.color = "#ff0000";
-            deathMessage.innerText = "You died while fighting " + character.name;
-            displayParent.appendChild(deathMessage);
-            return;
+          if(Dice.d20() === 20) {
+            damageRoll *= 3;
+            Combat.log(character.name + " scores a critical hit.", "red");
           }
+          if(player.takeDamage(damageRoll, character.name)) return;
         } else {
           Combat.log(character.name + " fails to hit " + player.name);
         }
@@ -502,31 +644,16 @@ function CombatEvent(name, text, characters, end) {
 }
 
 function display() {
-  var inventoryContainer = document.getElementById("inventory-list");
-  if(!inventoryContainer) {
-    console.log("No Inventory Container in HTML.");
-    return;
-  }
-  inventoryContainer.innerHTML = "";
-  var li = document.createElement("li");
-  li.innerHTML = "You have " + player.inventory.length + " item" + (player.inventory.length === 1 ? "" : "s") + ".";
-  inventoryContainer.appendChild(li);
-  for(var i = 0; i < player.inventory.length; i++) {
-    var li = document.createElement("li");
-    li.innerHTML = player.inventory[i];
-    inventoryContainer.appendChild(li);
-  }
+  var hpDisplay = document.getElementById("hp-display");
+  if(hpDisplay) {
+    hpDisplay.innerHTML = "";
+  }    
+  hpDisplay.innerText = player.name + " has " + player.hp + " HP left.";
 
   var table = document.getElementById("map-table");
   if(table) {
     table.innerHTML = "";
-  } else {
-    table = document.createElement("table");
-    table.id = "map-table";
-    table.className += "table table-bordered";
-
-    displayParent.appendChild(table);
-  }
+  } 
 
   for(var i = 0; i < mapWidth; i++) {
     var row = document.createElement("tr");
@@ -540,7 +667,11 @@ function display() {
       } else if(mapCell.explored === true) {
         if(mapCell.event) {
           displayCell.innerHTML = mapCell.event.name;
-          displayCell.className = "event";
+          if(mapCell.event.done) {
+            displayCell.className = "done";
+          } else {
+            displayCell.className = "event";
+          }
         } else if(!mapCell.passable) {
           displayCell.innerHTML = "Wall";
           displayCell.className = "event";
@@ -557,14 +688,19 @@ function display() {
     table.appendChild(row);
   }
 
-  var hpDisplay = document.getElementById("hp-display");
-  if(hpDisplay) {
-    hpDisplay.innerHTML = "";
-  } else {
-    hpDisplay = document.createElement("h4");
-    hpDisplay.id = "hp-display";
-
-    displayParent.appendChild(hpDisplay);
-  }     
-  hpDisplay.innerText = player.name + " has " + player.hp + " HP left.";
+  var inventoryContainer = document.getElementById("inventory-list");
+  if(!inventoryContainer) {
+    console.log("No Inventory Container in HTML.");
+    return;
+  }
+  inventoryContainer.innerHTML = "";
+  var li = document.createElement("li");
+  li.innerHTML = "You have " + player.inventory.length + " item" + (player.inventory.length === 1 ? "" : "s") + ".";
+  inventoryContainer.appendChild(li);
+  for(var i = 0; i < player.inventory.length; i++) {
+    var li = document.createElement("li");
+    li.innerHTML = player.inventory[i];
+    inventoryContainer.appendChild(li);
+  }
+  
 }
