@@ -8,16 +8,39 @@ Start is the empty spot where the player is put at the beginning
 End is the boss fight event. Game will automatically end after this fight is completed. Boss fight is sufficiently difficult to require player to explore.
 unusedStringIndicatingTypeForPositions is used to fulfill the requirement. The long name is to ensure it is not mistaken for a used variable.
 */
-document.body.innerHTML = "";
 
 var mapWidth = 8;
 var mapHeight = 8;
 var gameOver = false;
-var allDiscovered = true;
+var allDiscovered = false;
 var wallDone = false;
 var numberOfWalls = 16;
 var playerBaseHp = 25;
 var playerBaseAc = 12;
+
+var Combat = {
+  log: function(entry, className) {
+    var line = document.createElement("p");
+    line.innerText = entry;
+    if(className) {
+      line.className = className;
+    }
+    combatLog.appendChild(line);
+    
+    combatLog.scrollTop = line.offsetTop;
+  }
+};
+
+var Dice = {
+  d20: function(number) {
+    return 1 + Math.floor(Math.random() * 20);
+  },
+  d6: function(number) {
+    return 1 + Math.floor(Math.random() * 6);
+  }
+};
+
+document.body.innerHTML = "";
 
 document.title = "Text Adventure";
 
@@ -30,7 +53,7 @@ bootstrapLink.type = "text/css";
 bootstrapLink.media = 'all';
 head.appendChild(bootstrapLink);
 
-var styles = "td {padding: 12px;text-align: center;}#combat-log {overflow: scroll;height: 150px;width: 700px;}.player {background-color: #22FF66;}.unknown {background-color: black;color: white;}.event {background-color: #3333FF;color: white;}.done {background-color: #FFFF00;}.red {color: red;}";
+var styles = "td {padding: 12px;text-align: center;} .hidden { display: hidden; } #combat-log {overflow: scroll;height: 100px;width: 700px;}.player {background-color: #22FF66;}.unknown {background-color: black;color: white;}.event {background-color: #3333FF;color: white;}.done {background-color: #FFFF00;}.red {color: red;}";
 var styleElement = document.createElement("style");
 styleElement.innerHTML = styles;
 head.appendChild(styleElement);
@@ -38,17 +61,17 @@ head.appendChild(styleElement);
 var displayParent = document.createElement("div");
 displayParent.classList.add("container");
 
-var title = document.createElement("h3");
-title.innerText = "Text Adventure";
-displayParent.appendChild(title);
+var titleHeader = document.createElement("h3");
+titleHeader.innerText = "Text Adventure";
+displayParent.appendChild(titleHeader);
 
 var intro = document.createElement("p");
-intro.innerText = "Welcome. Your goal is to find Oboro, the \"Messenger of the Heavens,\" and remove him from this world.";
+intro.innerText = "Welcome. Your goal is to find Oboro, the \"Messenger of the Heavens,\" and remove him from this world. Doing so will require you to drink potions and explore the world.";
 displayParent.appendChild(intro);
 
 var button = document.createElement("button");
 button.classList.add("btn");
-button.classList.add("btn-success");
+button.classList.add("btn-info");
 button.innerText = "Next Round";
 button.onclick = function() { round(); };
 displayParent.appendChild(button);
@@ -88,29 +111,6 @@ displayParent.appendChild(inventoryList);
 
 document.body.appendChild(displayParent);
 
-
-var Combat = {
-  log: function(entry, className) {
-    var line = document.createElement("p");
-    line.innerText = entry;
-    if(className) {
-      line.className = className;
-    }
-    combatLog.appendChild(line);
-    
-    combatLog.scrollTop = line.offsetTop;
-  }
-};
-
-var Dice = {
-  d20: function(number) {
-    return 1 + Math.floor(Math.random() * 20);
-  },
-  d6: function(number) {
-    return 1 + Math.floor(Math.random() * 6);
-  }
-};
-
 var events = getEvents();
 
 var playerName;
@@ -124,96 +124,125 @@ do {
 
 var player = new Player(playerName, playerBaseHp, playerBaseAc);
 
-var map = [];
-for(var i = 0; i < mapWidth; i++) {
-  map[i] = [];
-  for(var j = 0; j < mapHeight; j++) {
-    map[i].push({ event: null, explored: allDiscovered, passable: true, unusedStringIndicatingTypeForPositions: "Empty" });
-  }
-}
 
-if(map.length * map[0].length < events.length + 10) {
-  console.log("Insufficient map size to host events. Please try a bigger map.");
-}
-
-var desiredEvents = (mapWidth * mapHeight) / 4;
-var healingEvents = desiredEvents - events.length;
-for(var i = 0; i < healingEvents; i++) {
-  events.push(new HealingEvent());
-} 
-
-while(events.length != 0) {
-  var event = events.pop();
-  while(true) {
-    var x = Math.round(Math.random() * (mapWidth - 1));
-    var y = Math.round(Math.random() * (mapHeight - 1));
-    if(map[x][y].event === null) {
-      map[x][y].event = event;
-      map[x][y].unusedStringIndicatingTypeForPositions = "E";
-      if(event.name === "Oboro") map[x][y].unusedStringIndicatingTypeForPositions = "G";
-      console.log(event.name + " at " + x + ", " + y);
-      break;
-    }
-  }
-}
-
-while(true) {
-  var x = Math.round(Math.random() * (mapWidth - 1));
-  var y = Math.round(Math.random() * (mapHeight - 1));
-
-  if(map[x][y].event === null) {
-    player.x = x;
-    player.y = y;
-    map[x][y].explored = true;
-    map[x][y].unusedStringIndicatingTypeForPositions = "S";
-    break;
-  }
-}
-
-for(var i = 0; i < numberOfWalls; i++) {
-  var maxTries = 85;
-  var tries = 0;
-  while(true) {
-    if(!(++tries < maxTries)) {
-      console.log("Passed maxTries for wall placement.");
-      break;
-    }
-    var x = Math.round(Math.random() * (mapWidth - 1));
-    var y = Math.round(Math.random() * (mapHeight - 1));
-
-    if(map[x][y].event === null && player.x != x && player.y != y) {
-      var skip = false;
-      var wallCount = 0;
-      var eventCount = 0;
-      for(var r = x - 1; r <= x + 1; r++) {
-        for(var j = y - 1; j <= y + 1; j++) {
-          //console.log("Running r/x " + r + " and j/y" + j);
-          try {
-            //console.log("Skip " + !map[r][j].passable + " for " + " (" + r + ", " + j + ") at (" + x + ", " + y + ")");
-            if(!map[r][j].passable) {
-              wallCount++;
-            }
-            if(map[r][j].event) {
-              eventCount++;
-            }
-          } catch(error) { wallCount += 0.5 }
+var namePrefixes = ["Dark", "Murky", "Shadow", "Dubious", "Final", "Demon", "シ", "Health", "Sled", "Scared", "Scarred", "Death", "Blueface"];
+var settings = ["You find a potion in the center of a ruined stone amphitheater. ",
+  "You discover a potion in a small alcove carved into a tree. ",
+  "You see a potion lying in the middle of a field. ",
+  "You find a potion atop a stone pedestal on the summit of a mountain. ",
+  "You find a potion in a cave. You painstakingly crawl through the cave to reach the potion. ",
+  "You find a potion in a birds nest on the ground. "
+];
+var potionLooks = ["The potion is in an opaque wooden jug with a straw sticking out the top. ",
+  "The potion is in a clear, pristine crystal vial. The contained liquid is mud-colored. ",
+  "The potion is in an opaque triangular prism shaped bottle. ",
+  "The potion is shaped like a sword with the tip of the blade serving as a straw. ",
+  "The potion is in a glass. It is a jet black liquid that is bubbling wildly. ",
+  "The potion is inside a balloon. ",
+  "The potion is inside a leather waterskin. You cannot tell what color the potion is, but it appears to be bubbling wildly judging by the changing shape of the waterskin. ",
+  "The potion is inside a clear, cut-gem-shaped crystal with a circular opening at the top. The potion is clear, but has letters suspended in it. These letters are \"E\", \"D\", and \"A.\" ",
+  "The potion is inside a plastic bag. You will have to use your own vessel to drink it. The potion is bloodred and nearly frozen. "
+];
+var omens = ["As you approach the potion, an owl flies above you.",
+  "As you approach the potion, nothing happens.",
+  "You trip as you approach the potion, and you take a large amount of happiness damage.",
+  "Your name changes as you approach the potion.",
+  "You hear whispers telling you to drink the potion as you approach it.",
+  "You footsteps behind you, but there is nothing there. When you look back at the potion, nothing happens.",
+  "The sun disappears from the sky as you approach the potion for about 5 seconds before returning.",
+  "You hear whispers telling you not to drink the potion as you approach.",
+  "The moon disappears from the sky as you approach the potion for about 50 seconds before returning.",
+  "As you approach the potion, a raven flies above you."
+];
+var effects = [
+    function(speed, magnitude) {
+      player.hp += Math.round(magnitude * speed * 10);
+      alert("You feel reinvigorated");
+    },
+    function(speed, magnitude) {
+      player.takeDamage(Math.round(magnitude * speed * 3), "Potion", "You died after drinking a highly suspicous liquid.");
+      alert("Whatever it was that you drank, it drains you.");
+    },
+    function(speed, magnitude, internalNums) {
+      player.ac += (magnitude * internalNums[0]) / (speed * internalNums[1]);
+      player.ac = Math.ceil(player.ac);
+      alert("You feel time seem to slow down.");
+    },
+    function(speed, magnitude, internalNums) {
+      player.damage += Math.round((speed * magnitude * internalNums[0]) / internalNums[1]);
+      alert("You feel somewhat stronger.");
+    },
+    function(speed, magnitude, internalNums) {
+      var type = internalNums[0];
+      if(type < 4) {
+        player.damage = Math.round(magnitude * speed * internalNums[1]);
+        player.attack += Math.round(magnitude * internalNums[2]);
+        alert("After you drink the potion, you notice your hand has morphed into a sort of scythe. The scythe seems to be razor-sharp, are will likely be useful.");
+      } else {
+        player.ac += Math.ceil((magnitude * internalNums[3] + speed) / 2);
+        alert("Your skin seems to have hardened, its texture now resembles that of an insect's exoskeleton.");
+      }
+    },
+    function(speed, magnitude, internalNums) {
+      if(speed % internalNums[0] === 0) {
+        player.ac += Math.round(magnitude * speed * 3); 
+      }
+      if(speed % internalNums[1] === 0) {
+        player.ac *= (magnitude * speed / 7) + 1;
+        player.ac = Math.ceil(player.ac);
+      }
+      if(speed % internalNums[2] === 0) {
+        player.attack += Math.round(magnitude * internalNums[6]);
+      }
+      if(speed % internalNums[3] === 0) {
+        player.damage = Math.round(magnitude * internalNums[7]);
+      }
+      if(speed % internalNums[4] === 0) {
+        player.ac += magnitude * internalNums[8];
+      }
+      if(speed % internalNums[5] === 0) {
+        player.attackRoll = function() {
+          return Math.round(Dice.d20() * 2.5);
         }
       }
-      if((wallCount > 3) || (wallCount > 1 && eventCount > 0)) {
-        skip = true;
+      if(speed == 10) {
+        player.attackRoll = function() {
+          alert("The potion you took earlier seems to prevent you from even attempting to strike any enemy.");
+          return -Infinity;
+        }
       }
-      if(skip) {
-        //console.log("Skipped placement of wall at " + x + ", " + y);
-        continue;
-      }
-
-      map[x][y].passable = false;
-      map[x][y].unusedStringIndicatingTypeForPositions = "W";
-      console.log("Wall at " + x + ", " + y);
-      break;
+      alert("Whatever you just drank appears to have left you unconcious for a few hours. You feel like something has happened, but you aren't quite sure what.")
     }
+];
+var effectsText = [
+  "you will be healed.",
+  "you will be hurt.",
+  "your clock will break.",
+  "you will be stronger.",
+  "you will become something else.",
+  "something nobody can predict will happen to you."
+];
+var magnitudeMap = {};
+for(var i = 0; i < settings.length; i++) {
+  magnitudeMap[settings[i]] = Math.random();
+}
+var effectMap = {};
+var effectDisplayedMap = {};
+for(var i = 0; i < potionLooks.length; i++) {
+  var effectChoice = Math.floor(Math.random() * effects.length);
+  effectMap[potionLooks[i]] = effects[effectChoice];
+  effectDisplayedMap[potionLooks[i]] = effectsText[effectChoice];
+}
+var internalMap = {};
+for(var i = 0; i < omens.length; i++) {
+  internalMap[omens[i]] = [];
+  for(var j = 0; j < 15; j++) {
+    internalMap[omens[i]].push(Math.ceil(Math.random() * 10));
   }
 }
+
+var map = generateMap();
+
 
 display();
 
@@ -311,12 +340,16 @@ document.onkeydown = function(e) {
   if(e.keyCode === 32) {
     round();
   } else if(e.keyCode === 38 || e.keyCode === 87) {
+    e.preventDefault();
     round("n");
   } else if(e.keyCode === 37 || e.keyCode === 65) {
+    e.preventDefault();
     round("w");
   } else if(e.keyCode === 40 || e.keyCode === 83) {
+    e.preventDefault();
     round("s");
   } else if(e.keyCode === 39 || e.keyCode === 68) {
+    e.preventDefault();
     round("e");
   }
 }
@@ -347,6 +380,34 @@ function getEvents() {
     
   };
   events.push(muramasa);
+
+  var potionBook = new Event("Potion Book", 
+    "You find a book titled: \"Ultimate Guide to Potions\"");
+  potionBook.run = function() {
+    alert(potionBook.text);
+    var potionBookText = "Ultimate Guide to Potions";
+    potionBookText += "<p>All potions have an effect, a power level, and an effect matrix. These three combine with the drink speed to produce an effect. Drinking a potion at speed 10 is highly risky if the effect is unknown. The first numbers of the effect matrix are the ones used most often. Most effect matrices are used to determine either the variation of strength of the effect. Nothing outside of drink speed, magnitude, and the effect matrix is used in determining the effect. More general effects depend on more numbers from their effect matrices.</p>";
+    potionBookText += "<h4>Effect Types:</h4>";
+    for(var text in effectMap) {
+      potionBookText += "<strong>\"" + text + "\"</strong> means <strong>" + effectDisplayedMap[text] + "</strong><br />";
+    }
+    potionBookText += "<h4>Effect Power:</h4>";
+    for(var text in magnitudeMap) {
+      potionBookText += "<strong>\"" + text + "\"</strong> means <strong>" + (Math.round(magnitudeMap[text] * 10) / 10) + "</strong> is the overall strength of the potion.<br />";
+    }
+    potionBookText += "<h4>Effect Matrix:</h4>";
+    for(var text in internalMap) {
+      var internalNumsAssoc = internalMap[text];
+      var effectMatrix = " ";
+      for(var i = 0; i < internalNumsAssoc.length; i++) {
+        effectMatrix += internalNumsAssoc[i] + " ";
+      }
+      potionBookText += "<strong>\"" + text + "\"</strong> has an associated matrix of (" + effectMatrix + ")<br />";
+    }
+    player.inventory.push(potionBookText);
+    this.done = true; 
+  };
+  events.push(potionBook);
 
   var doll = new Event("Doll", 
     "In a clearing in the middle of a forest, you see a doll about 14 inches tall standing outside a staircase leading into the ground. It is wearing a black and white mask and is dressed in a tuxedo. It begins to approach you slowly.");
@@ -578,87 +639,41 @@ function Character(name, hp, ac, attack, damage) {
   }
 }
 
+
 function HealingEvent() {
   var healingEvent;
-  var namePrefixes = ["Dark", "Murky", "Shadow", "Dubious", "Final", "Demon", "シ", "Health", "Sled", "Scared", "Scarred", "Death", "Blueface"];
+  
   var title = (namePrefixes[Math.floor(Math.random() * namePrefixes.length)]) + " Potion";
-  var settings = ["You find a potion in the center of a ruined stone amphitheater. ",
-  "You discover a potion in a small alcove carved into a tree. ",
-  "You see a potion lying in the middle of a field. ",
-  "You find a potion atop a stone pedestal on the summit of a mountain. ",
-  "You find a potion in a cave. You painstakingly crawl through the cave to reach the potion. ",
-  "You find a potion in a birds nest on the ground. "];
-  var potionLooks = ["The potion is in an opaque wooden jug with a straw sticking out the top. ",
-  "The potion is in a clear, pristine crystal vial. The contained liquid is mud-colored. ",
-  "The potion is in an opaque triangular prism shaped bottle. ",
-  "The potion is shaped like a sword with the tip of the blade serving as a straw. ",
-  "The potion is in a glass. It is a jet black liquid that is bubbling wildly. ",
-  "The potion is inside a balloon. ",
-  "The potion is inside a leather waterskin. You cannot tell what color the potion is, but it appears to be bubbling wildly judging by the changing shape of the waterskin. ",
-  "The potion is inside a clear, cut-gem-shaped crystal with a circular opening at the top. The potion is clear, but has letters suspended in it. These letters are \"E\", \"D\", and \"A.\" ",
-  "The potion is inside a plastic bag. You will have to use your own vessel to drink it. The potion is bloodred and nearly frozen. "
-  ];
-  var omens = ["As you approach the potion, an owl flies above you.",
-  "As you approach the potion, nothing happens.",
-  "You trip as you approach the potion, and you take a large amount of happiness damage.",
-  "Your name changes as you approach the potion.",
-  "You hear whispers telling you to drink the potion as you approach it.",
-  "You footsteps behind you, but there is nothing there. When you look back at the potion, nothing happens.",
-  "The sun disappears from the sky as you approach the potion for about 5 seconds before returning."];
-  var text = settings[Math.floor(Math.random() * settings.length)] 
-  + potionLooks[Math.floor(Math.random() * potionLooks.length)] 
-  + omens[Math.floor(Math.random() * omens.length)];
+
+  var omenChoice = Math.floor(Math.random() * omens.length);
+  var looksChoice = Math.floor(Math.random() * potionLooks.length);
+  var settingChoice = Math.floor(Math.random() * settings.length);
+  var text = settings[settingChoice] 
+  + potionLooks[looksChoice] 
+  + omens[omenChoice];
   healingEvent = new Event(title, text);
 
-  var magnitude = Math.random();
-  var effects = [
-    function(speed) {
-      player.hp += Math.round(magnitude * speed * 10);
-      alert("You feel reinvigorated");
-    },
-    function(speed) {
-      player.takeDamage(Math.round(magnitude * speed * 3), title, "You died after drinking a highly suspicous liquid.");
-      alert("Whatever it was that you drank, it drains you.");
-    },
-    function(speed) {
-      if(speed % 2 === 0) {
-        player.ac += Math.round(magnitude * speed * 3); 
-      }
-      if(speed % 3 === 0) {
-        player.ac *= Math.round(magnitude * speed / 7) + 1;
-      }
-      if(speed % 4 === 0) {
-        player.attack += 5;
-      }
-      if(speed == 10) {
-        player.attackRoll = function() {
-          alert("The potion you took earlier seems to prevent you from even attempting to strike any enemy.");
-          return -Infinity;
-        }
-      }
-      alert("Whatever you just drank appears to have left you unconcious for a few hours. You feel like something has happened, but you aren't quite sure what.")
-    }
-  ];
+  var magnitude = magnitudeMap[settings[settingChoice]];
+  var runEffect = effectMap[potionLooks[looksChoice]];
 
-  var runEffect = effects[Math.floor(Math.random() * effects.length)] ;
   healingEvent.run = function() {
     alert(this.name + "\n\n" + this.text);
     if(this.text.indexOf("Your name changes as you approach the potion.") != -1) {
         player.name = "";
-        for(var i = 0; i < 1 + (Math.random() * 20); i++) {
+        for(var i = 0; i < 1 + (Math.random() * 10); i++) {
           player.name += "あんパン";
         }
     }
     display();
     if(confirm("Would you like to drink the potion?")) {
-      var speed = prompt("Potions' effects usually are stronger the faster you drink them. On a continuous scale of 1-10, you quickly would you like to drink the potion?");
+      var speed = prompt("Potions' effects are USUALLY stronger the faster you drink them. On a continuous scale of 1-10, you quickly would you like to drink the potion?");
       if((!speed) || isNaN(speed) || (speed < 1) || (speed > 10)) {
         player.ac -= 5;
         player.inventory.push("Physical Manifestation of your Headache earned by failing to think of a number 1-10 when drinking a " + this.name);
         alert("You try to think of how fast to drink the potion, but you fail. You leave sadly with a painful, slowing headache. It will be harder to dodge now.");
         return;
       }
-      runEffect(speed);
+      runEffect(speed, magnitude, internalMap[omens[omenChoice]]);
       this.done = true;
     } else {
       alert("You leave the potion where it is and return to where you were before.");
@@ -733,12 +748,107 @@ function CombatEvent(name, text, characters, end) {
   return combatEvent;
 }
 
+function generateMap() {
+  var map = [];
+
+  for(var i = 0; i < mapWidth; i++) {
+    map[i] = [];
+    for(var j = 0; j < mapHeight; j++) {
+      map[i].push({ event: null, explored: allDiscovered, passable: true, unusedStringIndicatingTypeForPositions: "Empty" });
+    }
+  }
+
+  if(map.length * map[0].length < events.length + 10) {
+    console.log("Insufficient map size to host events. Please try a bigger map.");
+  }
+
+  var desiredEvents = (mapWidth * mapHeight) / 4;
+  var healingEvents = desiredEvents - events.length;
+  for(var i = 0; i < healingEvents; i++) {
+    events.push(new HealingEvent());
+  } 
+
+  while(events.length != 0) {
+    var event = events.pop();
+    while(true) {
+      var x = Math.round(Math.random() * (mapWidth - 1));
+      var y = Math.round(Math.random() * (mapHeight - 1));
+      if(map[x][y].event === null) {
+        map[x][y].event = event;
+        map[x][y].unusedStringIndicatingTypeForPositions = "E";
+        if(event.name === "Oboro") map[x][y].unusedStringIndicatingTypeForPositions = "G";
+        console.log(event.name + " at " + x + ", " + y);
+        break;
+      }
+    }
+  }
+
+  while(true) {
+    var x = Math.round(Math.random() * (mapWidth - 1));
+    var y = Math.round(Math.random() * (mapHeight - 1));
+
+    if(map[x][y].event === null) {
+      player.x = x;
+      player.y = y;
+      map[x][y].explored = true;
+      map[x][y].unusedStringIndicatingTypeForPositions = "S";
+      break;
+    }
+  }
+
+  for(var i = 0; i < numberOfWalls; i++) {
+    var maxTries = 85;
+    var tries = 0;
+    while(true) {
+      if(!(++tries < maxTries)) {
+        console.log("Passed maxTries for wall placement.");
+        break;
+      }
+      var x = Math.round(Math.random() * (mapWidth - 1));
+      var y = Math.round(Math.random() * (mapHeight - 1));
+
+      if(map[x][y].event === null && player.x != x && player.y != y) {
+        var skip = false;
+        var wallCount = 0;
+        var eventCount = 0;
+        for(var r = x - 1; r <= x + 1; r++) {
+          for(var j = y - 1; j <= y + 1; j++) {
+            //console.log("Running r/x " + r + " and j/y" + j);
+            try {
+              //console.log("Skip " + !map[r][j].passable + " for " + " (" + r + ", " + j + ") at (" + x + ", " + y + ")");
+              if(!map[r][j].passable) {
+                wallCount++;
+              }
+              if(map[r][j].event) {
+                eventCount++;
+              }
+            } catch(error) { wallCount += 0.7 }
+          }
+        }
+        if((wallCount > 3) || (wallCount > 1 && eventCount > 0)) {
+          skip = true;
+        }
+        if(skip) {
+          //console.log("Skipped placement of wall at " + x + ", " + y);
+          continue;
+        }
+
+        map[x][y].passable = false;
+        map[x][y].unusedStringIndicatingTypeForPositions = "W";
+        console.log("Wall at " + x + ", " + y);
+        break;
+      }
+    }
+  }
+  return map;
+}
+
 function display() {
   var hpDisplay = document.getElementById("hp-display");
   if(hpDisplay) {
     hpDisplay.innerHTML = "";
   }    
-  hpDisplay.innerText = player.name + " has " + player.hp + " HP left.";
+  hpDisplay.innerHTML = player.name + " has <strong>" + player.hp + " HP</strong> left.";
 
   var table = document.getElementById("map-table");
   if(table) {
