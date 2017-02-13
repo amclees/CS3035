@@ -6,7 +6,6 @@ The 8x8 matrix is named "map"
 Prizes are in "player.inventory"
 Start is the empty spot where the player is put at the beginning
 End is the boss fight event. Game will automatically end after this fight is completed. Boss fight is sufficiently difficult to require player to explore.
-unusedStringIndicatingTypeForPositions is used to fulfill the requirement. The long name is to ensure it is not mistaken for a used variable.
 */
 
 var mapWidth = 8;
@@ -26,7 +25,7 @@ var Combat = {
       line.className = className;
     }
     combatLog.appendChild(line);
-    
+
     combatLog.scrollTop = line.offsetTop;
   }
 };
@@ -185,7 +184,7 @@ var effects = [
     },
     function(speed, magnitude, internalNums) {
       if(speed % internalNums[0] === 0) {
-        player.ac += Math.round(magnitude * speed * 3); 
+        player.ac += Math.round(magnitude * speed * 3);
       }
       if(speed % internalNums[1] === 0) {
         player.ac *= (magnitude * speed / 7) + 1;
@@ -271,7 +270,7 @@ function round(presetMove) {
     if(!presetMove) round();
     return;
   }
-  
+
   var destTile = map[dest.x][dest.y];
   if(!destTile.passable) {
     destTile.explored = true;
@@ -296,8 +295,8 @@ function round(presetMove) {
         var slugImg = document.createElement("img");
         slugImg.src = "https://cdn.psychologytoday.com/sites/default/files/field_blog_entry_images/slug_0.jpg";
         slugImg.alt = "slug";
-        slugImg.width = 300;
-        slugImg.height = 150;
+        slugImg.width = 250;
+        slugImg.height = 125;
         var desc = document.createElement("p");
         desc.innerText = "You became a ";
         combatLog.appendChild(desc);
@@ -358,7 +357,7 @@ document.onkeydown = function(e) {
 function getEvents() {
   var events = [];
 
-  var muramasa = new Event("Muramasa", 
+  var muramasa = new Event("Muramasa",
     "You find an old wooden chest rotting away. Inside, you find a pristine katana made of a dark colored metal with an inscription written in a language unknown to you.");
   muramasa.run = function() {
     alert(muramasa.text);
@@ -373,15 +372,15 @@ function getEvents() {
         player.takeDamage(2, "Muramasa", "You died by touching a katana with your finger.");
         alert("The katana is sharp enough that you cut deeper than planned, reaching the bone of your finger.");
       }
-      this.done = true; 
+      this.done = true;
     } else {
       alert("Reluctantly, you leave what could have made an excellent weapon in the chest.");
     }
-    
+
   };
   events.push(muramasa);
 
-  var potionBook = new Event("Potion Book", 
+  var potionBook = new Event("Potion Book",
     "You find a book titled: \"Ultimate Guide to Potions\"");
   potionBook.run = function() {
     alert(potionBook.text);
@@ -405,16 +404,41 @@ function getEvents() {
       potionBookText += "<strong>\"" + text + "\"</strong> has an associated matrix of (" + effectMatrix + ")<br />";
     }
     player.inventory.push(potionBookText);
-    this.done = true; 
+    this.done = true;
   };
-  events.push(potionBook);
+  var potionBookHouse = new Event("Cave",
+    "You find a cave entrance with a door built into a cliff overlooking a lake. There is a path leading up the side of the cliff towards the cave.");
+  potionBookHouse.run = function() {
+    alert(this.text);
+    if(confirm("Would you like to enter the cave through the door?")) {
+      alert("When you enter the door, you see an octopus. Each of the octopus' tentacles is holding an open book. The octopus seems to be reading multiple books at the same time. It gestures for you to take a book lying on a table between you and the octopus.");
+      if(confirm("Would you like to take the book?")) {
+        potionBook.run();
+        this.done = true;
+      } else if(confirm("Would you like to attack the octopus?")) {
+        alert("The octopus parries your strike with one of its tentacles while casting a spell with its other tentacle. When it finishes casting, you can no longer breath.");
+        player.takeDamage(Infinity, "Asphyxiation", "You died after attempting to attack a peaceful but deadly octopus.");
+        display();
+        return;
+      } else {
+        alert("As you leave the cave, the octopus seems disappointed.");
+        return;
+      }
+    } else {
+      alert("You leave and return to where you were, wondering what could have been in the cave.");
+      return;
+    }
+    this.done = true;
+  };
+  events.push(potionBookHouse);
 
-  var doll = new Event("Doll", 
+
+  var doll = new Event("Doll",
     "In a clearing in the middle of a forest, you see a doll about 14 inches tall standing outside a staircase leading into the ground. It is wearing a black and white mask and is dressed in a tuxedo. It begins to approach you slowly.");
   doll.run = function() {
     alert(doll.text);
     if(confirm("Would you like to attack the doll?")) {
-      alert("The doll explodes upon being hit but is far enough that is does not hurt you. After it explodes, about 50 more dolls march up the staircase in the ground one by one. You manage to destroy all of them without being injured.");  
+      alert("The doll explodes upon being hit but is far enough that is does not hurt you. After it explodes, about 50 more dolls march up the staircase in the ground one by one. You manage to destroy all of them without being injured.");
     } else {
       alert("The doll approaches you and grabs your leg. You find it rather cute, until the doll suddenly explodes.");
       player.takeDamage(4, "a doll", "You died by letting a suspicious doll explode on you.");
@@ -450,13 +474,13 @@ function getEvents() {
     } else {
       alert("You leave emptyhanded.");
     }
-    
+
 
     this.done = true;
   };
   events.push(doll);
 
-  var bridgeMan = new Event("Orc Bridge", 
+  var bridgeMan = new Event("Orc Bridge",
     "You enter a city filled with orcs. A large bridge with fewer orcs on it leads through the city. You take this bridge partway through the city. You are careful to maintain your position close the the center since a fall would be lethal.");
   bridgeMan.run = function() {
     alert(bridgeMan.text);
@@ -482,7 +506,7 @@ function getEvents() {
       alert("Drinking a strange liquid is probably not a good idea, so you leave without drinking it.");
     }
   };
-  var cobra = new CombatEvent("Iron Cobra", 
+  var cobra = new CombatEvent("Iron Cobra",
     "You encounter an Iron Cobra outside a small log cabin. It is a 7 foot long cobra made entirely of iron except for an enchanted core created by an artifacer. They usually are created to guard valuables.",
     [(new Character("Iron Cobra", 27, 16, 7, 2))],
     cobraReward
@@ -494,13 +518,25 @@ function getEvents() {
     Combat.log(player.name + " acquires squirrel.");
     player.inventory.push("Squirrel corpse");
   };
-  var squirrel = new CombatEvent("Squirrel", 
-    "You encounter a man who touches a tree. He suddenly turns into a squirrel that charges at you.",
-    [(new Character("Squirrel", 6, 12, 0, 0))],
+  var squirrel = new CombatEvent("Squirrel",
+    "You encounter a man who is drinking beer and eating peanuts. He suddenly touches a tree then turns into a large squirrel that charges at you.",
+    [(new Character("Squirrel", 6, 12, 2, 1))],
     squirrelReward
   );
   events.push(squirrel);
 
+  var rabbitReward = function() {
+    alert("You take the rabbit's fur with you as a \"prize.\" It will likely make you much luckier.")
+    Combat.log(player.name + " acquires rabbit.");
+    player.inventory.push("Squirrel corpse");
+    player.attack += 12;
+  };
+  var rabbit = new CombatEvent("Rabbit",
+    "You encounter a rabbit. It looks to be about 25 kilograms and has painful-looking fangs.",
+    [(new Character("Killer Rabbit", 14, 7, 2, 5 + Math.floor(Math.random() * 40)))],
+    rabbitReward
+  );
+  events.push(rabbit);
 
   var knightReward = function() {
     if(confirm("Would you like to take the knight's prized armor?")) {
@@ -513,7 +549,7 @@ function getEvents() {
       alert("Why would you pass up some good armor? In any case, you leave with nothing.");
     }
   };
-  var knight = new CombatEvent("Knight", 
+  var knight = new CombatEvent("Knight",
     "You encounter a knight who proclaims that he is invincible due to his adamantium armor. He draws his sword and attacks.",
     [(new Character("Knight", 20, 19, 6, 3))],
     knightReward
@@ -534,10 +570,10 @@ function getEvents() {
       alert("You leave wondering what you could have found inside the tower.");
     }
   };
-  var infected = new CombatEvent("Infected", 
+  var infected = new CombatEvent("Infected",
     "In the middle of a ruined city, you find a tower surrounded by people. They seem to be infected with some sort of disease affecting their skin, and they all begin running toward you when they spot you.",
     [
-      (new Character("Weeper", 13, 9, 3, 0)), 
+      (new Character("Weeper", 13, 9, 3, 0)),
       (new Character("Weeper", 9, 9, 3, 0)),
       (new Character("Weeper", 10, 9, 3, 0)),
       (new Character("Weeper", 8, 9, 3, 0)),
@@ -557,10 +593,11 @@ function getEvents() {
     gameOver = true;
     return;
   };
-  var boss = new CombatEvent("Oboro", 
+  var bonus = Math.random() < 0.1 ? 20 : 0;
+  var boss = new CombatEvent("Oboro",
     "You come across what was once a wide open field, when you visited it before. Now, it is strewn with countless corpses. Each of the corpses has the same cut, going from the bottom left of their torsos to the top right, about 3 inches deep. Standing at the center of this field is one man, holding a sword in his right hand. He runs towards you and begins to attack.",
     [
-      (new Character("Oboro \"Messenger of the Heavens\"", 200, 23, 16, 7))
+      (new Character("Oboro \"Messenger of the Heavens\"", 200 + Math.floor(Math.random() * 50), 25 + Math.floor(Math.random() * 5), 23 + bonus, 9 + bonus))
     ],
     bossReward
   );
@@ -597,7 +634,7 @@ function Player(name, hp, ac) {
         deathMessage.innerText = (customMessage ? customMessage : "You died due to " + damageSource);
         displayParent.insertBefore(deathMessage, displayParent.childNodes[0]);
         Combat.log(player.name + " dies.");
-        gameOver = true; 
+        gameOver = true;
         return true;
       } else {
         return false;
@@ -642,14 +679,14 @@ function Character(name, hp, ac, attack, damage) {
 
 function HealingEvent() {
   var healingEvent;
-  
+
   var title = (namePrefixes[Math.floor(Math.random() * namePrefixes.length)]) + " Potion";
 
   var omenChoice = Math.floor(Math.random() * omens.length);
   var looksChoice = Math.floor(Math.random() * potionLooks.length);
   var settingChoice = Math.floor(Math.random() * settings.length);
-  var text = settings[settingChoice] 
-  + potionLooks[looksChoice] 
+  var text = settings[settingChoice]
+  + potionLooks[looksChoice]
   + omens[omenChoice];
   healingEvent = new Event(title, text);
 
@@ -754,7 +791,7 @@ function generateMap() {
   for(var i = 0; i < mapWidth; i++) {
     map[i] = [];
     for(var j = 0; j < mapHeight; j++) {
-      map[i].push({ event: null, explored: allDiscovered, passable: true, unusedStringIndicatingTypeForPositions: "Empty" });
+      map[i].push({ event: null, explored: allDiscovered, passable: true});
     }
   }
 
@@ -766,7 +803,7 @@ function generateMap() {
   var healingEvents = desiredEvents - events.length;
   for(var i = 0; i < healingEvents; i++) {
     events.push(new HealingEvent());
-  } 
+  }
 
   while(events.length != 0) {
     var event = events.pop();
@@ -775,8 +812,6 @@ function generateMap() {
       var y = Math.round(Math.random() * (mapHeight - 1));
       if(map[x][y].event === null) {
         map[x][y].event = event;
-        map[x][y].unusedStringIndicatingTypeForPositions = "E";
-        if(event.name === "Oboro") map[x][y].unusedStringIndicatingTypeForPositions = "G";
         console.log(event.name + " at " + x + ", " + y);
         break;
       }
@@ -791,7 +826,6 @@ function generateMap() {
       player.x = x;
       player.y = y;
       map[x][y].explored = true;
-      map[x][y].unusedStringIndicatingTypeForPositions = "S";
       break;
     }
   }
@@ -834,7 +868,6 @@ function generateMap() {
         }
 
         map[x][y].passable = false;
-        map[x][y].unusedStringIndicatingTypeForPositions = "W";
         console.log("Wall at " + x + ", " + y);
         break;
       }
@@ -847,13 +880,13 @@ function display() {
   var hpDisplay = document.getElementById("hp-display");
   if(hpDisplay) {
     hpDisplay.innerHTML = "";
-  }    
+  }
   hpDisplay.innerHTML = player.name + " has <strong>" + player.hp + " HP</strong> left.";
 
   var table = document.getElementById("map-table");
   if(table) {
     table.innerHTML = "";
-  } 
+  }
 
   for(var i = 0; i < mapWidth; i++) {
     var row = document.createElement("tr");
@@ -902,5 +935,5 @@ function display() {
     li.innerHTML = player.inventory[i];
     inventoryContainer.appendChild(li);
   }
-  
+
 }
