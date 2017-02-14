@@ -528,7 +528,7 @@ function getEvents() {
   var rabbitReward = function() {
     alert("You take the rabbit's fur with you as a \"prize.\" It will likely make you much luckier.")
     Combat.log(player.name + " acquires rabbit.");
-    player.inventory.push("Squirrel corpse");
+    player.inventory.push("Rabbit's Fur");
     player.attack += 12;
   };
   var rabbit = new CombatEvent("Rabbit",
@@ -675,7 +675,6 @@ function Character(name, hp, ac, attack, damage) {
     }
   }
 }
-
 
 function HealingEvent() {
   var healingEvent;
