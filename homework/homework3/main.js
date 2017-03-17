@@ -2,6 +2,7 @@ $(document).ready(function() {
   var mapWidth = 8;
   var mapHeight = 8;
   var gameOver = false;
+  var pendingMessage = false;
   var allDiscovered = false;
   var wallDone = false;
   var numberOfWalls = 16;
@@ -15,6 +16,7 @@ $(document).ready(function() {
   var messageElement = document.getElementById("message");
 
   var message = function(binding, msg, callback) {
+    pendingMessage = true;
     if(!callback) callback = function() {};
     else callback = callback.bind(binding);
     messageElement.innerText = msg;
@@ -24,10 +26,13 @@ $(document).ready(function() {
     yesButton.onclick = function() {
       messageElement.classList.add("hidden");
       yesButton.classList.add("hidden");
+      pendingMessage = false;
       callback();
+      display();
     }
   };
   var getChoice = function(binding, msg, callback) {
+    pendingMessage = true;
     if(!callback) callback = function() {};
     else callback = callback.bind(binding);
     messageElement.innerText = msg;
@@ -40,16 +45,21 @@ $(document).ready(function() {
       messageElement.classList.add("hidden");
       yesButton.classList.add("hidden");
       noButton.classList.add("hidden");
+      pendingMessage = false;
       callback(true);
+      display();
     };
     noButton.onclick = function() {
       messageElement.classList.add("hidden");
       yesButton.classList.add("hidden");
       noButton.classList.add("hidden");
+      pendingMessage = false;
       callback(false);
+      display();
     };
   };
   var getInput = function(binding, msg, callback) {
+    pendingMessage = true;
     if(!callback) callback = function() {};
     else callback = callback.bind(binding);
     messageElement.innerText = msg;
@@ -65,17 +75,21 @@ $(document).ready(function() {
       inputBox.classList.add("hidden");
       yesButton.classList.add("hidden");
       noButton.classList.add("hidden");
+      pendingMessage = false;
       callback(inputBox.value);
+      display();
     };
     noButton.onclick = function() {
       messageElement.classList.add("hidden");
       inputBox.classList.add("hidden");
       yesButton.classList.add("hidden");
       noButton.classList.add("hidden");
+      pendingMessage = false;
       callback(null);
+      display();
     };
   };
-  getmessage(this, "Input something", function(choice) { console.log(choice); });
+  getInput(this, "Input something", function(choice) { console.log(choice); });
 
   var Combat = {
     log: function(entry, className) {
@@ -113,7 +127,7 @@ $(document).ready(function() {
 
   var playerName;
   var map;
-  getmessage(this, "Please enter your player's name.", function(input) {
+  getInput(this, "Please enter your player's name.", function(input) {
     playerName = input;
     if(playerName === null || playerName.trim() === "") {
       playerName = "Player";
@@ -156,35 +170,37 @@ $(document).ready(function() {
     "As you approach the potion, a raven flies above you."
   ];
   var effects = [
-      function(speed, magnitude) {
+      function(speed, magnitude, internalNums, callback) {
         player.hp += Math.round(magnitude * speed * 10);
-        message(this, "You feel reinvigorated");
+        message(this, "You feel reinvigorated", callback);
       },
-      function(speed, magnitude) {
+      function(speed, magnitude, internalNums, callback) {
         player.takeDamage(Math.round(magnitude * speed * 3), "Potion", "You died after drinking a highly suspicous liquid.");
-        message(this, "Whatever it was that you drank, it drains you.");
+        message(this, "Whatever it was that you drank, it drains you.", callback);
       },
-      function(speed, magnitude, internalNums) {
+      function(speed, magnitude, internalNums, callback) {
         player.ac += (magnitude * internalNums[0]) / (speed * internalNums[1]);
         player.ac = Math.ceil(player.ac);
-        message(this, "You feel time seem to slow down.");
+        message(this, "You feel time seem to slow down.", callback);
       },
-      function(speed, magnitude, internalNums) {
+      function(speed, magnitude, internalNums, callback) {
         player.damage += Math.round((speed * magnitude * internalNums[0]) / internalNums[1]);
-        message(this, "You feel somewhat stronger.");
+        message(this, "You feel somewhat stronger.", callback);
       },
-      function(speed, magnitude, internalNums) {
+      function(speed, magnitude, internalNums, callback) {
         var type = internalNums[0];
         if(type < 4) {
           player.damage = Math.round(magnitude * speed * internalNums[1]);
           player.attack += Math.round(magnitude * internalNums[2]);
-          message(this, "After you drink the potion, you notice your hand has morphed into a sort of scythe. The scythe seems to be razor-sharp, are will likely be useful.");
+          message(this, "After you drink the potion, you notice your hand has morphed into a sort of scythe. The scythe seems to be razor-sharp, are will likely be useful."
+          , callback);
         } else {
           player.ac += Math.ceil((magnitude * internalNums[3] + speed) / 2);
-          message(this, "Your skin seems to have hardened, its texture now resembles that of an insect's exoskeleton.");
+          message(this, "Your skin seems to have hardened, its texture now resembles that of an insect's exoskeleton."
+          , callback);
         }
       },
-      function(speed, magnitude, internalNums) {
+      function(speed, magnitude, internalNums, callback) {
         if(speed % internalNums[0] === 0) {
           player.ac += Math.round(magnitude * speed * 3);
         }
@@ -211,7 +227,8 @@ $(document).ready(function() {
             return -Infinity;
           }
         }
-        message(this, "Whatever you just drank appears to have left you unconcious for a few hours. You feel like something has happened, but you aren't quite sure what.")
+        message(this, "Whatever you just drank appears to have left you unconcious for a few hours. You feel like something has happened, but you aren't quite sure what."
+        , callback)
       }
   ];
   var effectsText = [
@@ -244,7 +261,7 @@ $(document).ready(function() {
 
 
   function round(presetMove) {
-    if(gameOver) return;
+    if(gameOver || pendingMessage) return;
     var move;
     if(presetMove) {
       move = presetMove;
@@ -281,13 +298,19 @@ $(document).ready(function() {
             , function() {
               var quiz = prompt("If you could choose one word to describe the behavior of these tower shields, what would it be?");
               var wrongMessage = "Why would a word you think of be important? You return to where you were before you visited the wall.";
-              if(quiz === null) {
-                message(this, wrongMessage);
-              } else if(quiz.trim().toLowerCase() === "broken") {
-                message(this, "When the word broken comes to your mind, you glance at your hand and notice it is invisible.");
-                player.ac += 12;
+              if(quiz === null) quiz = "";
+              if(quiz.trim().toLowerCase() === "broken") {
+                message(this, "When the word broken comes to your mind, you glance at your hand and notice it is invisible."
+                , function() {
+                  player.ac += 12;
+                  Combat.log(player.name + " runs into a wall at (" + dest.x + ", " + dest.y + ") and has to turn back.");
+                  display();
+                });
               } else {
-                message(this, wrongMessage);
+                message(this, wrongMessage, function() {
+                  Combat.log(player.name + " runs into a wall at (" + dest.x + ", " + dest.y + ") and has to turn back.");
+                  display();
+                });
               }
             });
           } else {
@@ -303,40 +326,50 @@ $(document).ready(function() {
               desc.innerText = "You became a ";
               combatLog.appendChild(desc);
               combatLog.appendChild(slugImg);
+              Combat.log(player.name + " runs into a wall at (" + dest.x + ", " + dest.y + ") and has to turn back.");
+              display();
             });
           }
         });
       } else {
-        message(this, "You run into a stone wall extending into the sky as far as you can see. You turn back.");
+        message(this, "You run into a stone wall extending into the sky as far as you can see. You turn back."
+        , function() {
+          Combat.log(player.name + " runs into a wall at (" + dest.x + ", " + dest.y + ") and has to turn back.");
+          display();
+        });
       }
-      Combat.log(player.name + " runs into a wall at (" + dest.x + ", " + dest.y + ") and has to turn back.");
-      display();
       return;
     }
+    var successfulMove = function() {
+      player.x = dest.x;
+      player.y = dest.y;
+      destTile.explored = true;
+      Combat.log(player.name + " successfully moves to (" + player.x + ", " + player.y + ") with " + player.hp + " HP.");
+      display();
+    };
     if(destTile.event) {
       if(!destTile.event.done) {
         if(!confirm("You have a feeling the area ahead might contain something interesting. Would you like to proceed?")) return;
-        destTile.event.run();
-        if(gameOver) {
-          destTile.explored = true;
-          display();
-          return;
-        }
-        if(!destTile.event.done) {
-          destTile.explored = true;
-          Combat.log(player.name + " leaves (" + dest.x + ", " + dest.y + ") and returns to their previous location.");
-          display();
-          return;
-        }
+        destTile.event.run(function() {
+          if(gameOver) {
+            destTile.explored = true;
+            display();
+            return;
+          }
+          if(!destTile.event.done) {
+            destTile.explored = true;
+            Combat.log(player.name + " leaves (" + dest.x + ", " + dest.y + ") and returns to their previous location.");
+            display();
+            return;
+          }
+          successfulMove();
+        });
+      } else {
+        successfulMove();
       }
+    } else {
+      successfulMove();
     }
-
-    player.x = dest.x;
-    player.y = dest.y;
-    destTile.explored = true;
-    Combat.log(player.name + " successfully moves to (" + player.x + ", " + player.y + ") with " + player.hp + " HP.");
-
-    display();
   }
 
   document.onkeydown = function(e) {
@@ -363,7 +396,7 @@ $(document).ready(function() {
 
     var muramasa = new Event("Muramasa",
       "You find an old wooden chest rotting away. Inside, you find a pristine katana made of a dark colored metal with an inscription written in a language unknown to you.");
-    muramasa.run = function() {
+    muramasa.run = function(callback) {
       message(this, muramasa.text, function() {
         if(confirm("Would you like to wield the katana?")) {
           player.damage += 4;
@@ -375,12 +408,14 @@ $(document).ready(function() {
             if(confirm("Would you like to test the sharpness with your finger?")) {
               display();
               player.takeDamage(2, "Muramasa", "You died by touching a katana with your finger.");
-              message(this, "The katana is sharp enough that you cut deeper than planned, reaching the bone of your finger.");
+              message(this, "The katana is sharp enough that you cut deeper than planned, reaching the bone of your finger.", callback);
+              return;
             }
+            callback();
             this.done = true;
           });
         } else {
-          message(this, "Reluctantly, you leave what could have made an excellent weapon in the chest.");
+          message(this, "Reluctantly, you leave what could have made an excellent weapon in the chest.", callback);
         }
       });
     };
@@ -388,39 +423,41 @@ $(document).ready(function() {
 
     var potionBook = new Event("Potion Book",
       "You find a book titled: \"Ultimate Guide to Potions\"");
-    potionBook.run = function() {
-      message(this, potionBook.text);
-      var potionBookText = "Ultimate Guide to Potions";
-      potionBookText += "<p>All potions have an effect, a power level, and an effect matrix. These three combine with the drink speed to produce an effect. Drinking a potion at speed 10 is highly risky if the effect is unknown. The first numbers of the effect matrix are the ones used most often. Most effect matrices are used to determine either the variation of strength of the effect. Nothing outside of drink speed, magnitude, and the effect matrix is used in determining the effect. More general effects depend on more numbers from their effect matrices.</p>";
-      potionBookText += "<h4>Effect Types:</h4>";
-      for(var text in effectMap) {
-        potionBookText += "<strong>\"" + text + "\"</strong> means <strong>" + effectDisplayedMap[text] + "</strong><br />";
-      }
-      potionBookText += "<h4>Effect Power:</h4>";
-      for(var text in magnitudeMap) {
-        potionBookText += "<strong>\"" + text + "\"</strong> means <strong>" + (Math.round(magnitudeMap[text] * 10) / 10) + "</strong> is the overall strength of the potion.<br />";
-      }
-      potionBookText += "<h4>Effect Matrix:</h4>";
-      for(var text in internalMap) {
-        var internalNumsAssoc = internalMap[text];
-        var effectMatrix = " ";
-        for(var i = 0; i < internalNumsAssoc.length; i++) {
-          effectMatrix += internalNumsAssoc[i] + " ";
+    potionBook.run = function(callback) {
+      message(this, potionBook.text, function() {
+        var potionBookText = "Ultimate Guide to Potions";
+        potionBookText += "<p>All potions have an effect, a power level, and an effect matrix. These three combine with the drink speed to produce an effect. Drinking a potion at speed 10 is highly risky if the effect is unknown. The first numbers of the effect matrix are the ones used most often. Most effect matrices are used to determine either the variation of strength of the effect. Nothing outside of drink speed, magnitude, and the effect matrix is used in determining the effect. More general effects depend on more numbers from their effect matrices.</p>";
+        potionBookText += "<h4>Effect Types:</h4>";
+        for(var text in effectMap) {
+          potionBookText += "<strong>\"" + text + "\"</strong> means <strong>" + effectDisplayedMap[text] + "</strong><br />";
         }
-        potionBookText += "<strong>\"" + text + "\"</strong> has an associated matrix of (" + effectMatrix + ")<br />";
-      }
-      player.inventory.push(potionBookText);
-      this.done = true;
+        potionBookText += "<h4>Effect Power:</h4>";
+        for(var text in magnitudeMap) {
+          potionBookText += "<strong>\"" + text + "\"</strong> means <strong>" + (Math.round(magnitudeMap[text] * 10) / 10) + "</strong> is the overall strength of the potion.<br />";
+        }
+        potionBookText += "<h4>Effect Matrix:</h4>";
+        for(var text in internalMap) {
+          var internalNumsAssoc = internalMap[text];
+          var effectMatrix = " ";
+          for(var i = 0; i < internalNumsAssoc.length; i++) {
+            effectMatrix += internalNumsAssoc[i] + " ";
+          }
+          potionBookText += "<strong>\"" + text + "\"</strong> has an associated matrix of (" + effectMatrix + ")<br />";
+        }
+        player.inventory.push(potionBookText);
+        this.done = true;
+        callback();
+      });
     };
     var potionBookHouse = new Event("Cave",
       "You find a cave entrance with a door built into a cliff overlooking a lake. There is a path leading up the side of the cliff towards the cave.");
-    potionBookHouse.run = function() {
+    potionBookHouse.run = function(callback) {
       message(this, this.text, function() {
         if(confirm("Would you like to enter the cave through the door?")) {
           message(this, "When you enter the door, you see an octopus. Each of the octopus' tentacles is holding an open book. The octopus seems to be reading multiple books at the same time. It gestures for you to take a book lying on a table between you and the octopus."
           , function() {
             if(confirm("Would you like to take the book?")) {
-              potionBook.run();
+              potionBook.run(callback);
               this.done = true;
             } else if(confirm("Would you like to attack the octopus?")) {
               message(this, "The octopus parries your strike with one of its tentacles while casting a spell with its other tentacle. When it finishes casting, you can no longer breath.");
@@ -428,15 +465,14 @@ $(document).ready(function() {
               display();
               return;
             } else {
-              message(this, "As you leave the cave, the octopus seems disappointed.");
+              message(this, "As you leave the cave, the octopus seems disappointed.", callback);
               return;
             }
           });
         } else {
-          message(this, "You leave and return to where you were, wondering what could have been in the cave.");
+          message(this, "You leave and return to where you were, wondering what could have been in the cave.", callback);
           return;
         }
-        this.done = true;
       });
     };
     events.push(potionBookHouse);
@@ -444,31 +480,36 @@ $(document).ready(function() {
 
     var doll = new Event("Doll",
       "In a clearing in the middle of a forest, you see a doll about 14 inches tall standing outside a staircase leading into the ground. It is wearing a black and white mask and is dressed in a tuxedo. It begins to approach you slowly.");
-    doll.run = function() {
+    doll.run = function(callback) {
       message(this, doll.text, function() {
         var doDungeon = function() {
           if(confirm("Do you want to enter the dungeon under the staircase?")) {
-              message(this, "The staircase leads to an underground hallway made of smoothly carved stone. The entire area is well lit by torches as if it were populated. At the end of the hall, you find a man dressed in the same way as the dolls, wearing a similar mask. He says that he is disappointed that a single adventurer will be the one to complete his story. He crumbles into dust, leaving only his mask.");
-              if(confirm("Would you like to equip the mask left on the ground.")) {
-                message(this, "Upon equipping the mask, you feel your mind being invaded by the demon that left the mask. You are unsure if you will regain control.")
-                if(Math.random() > 0.7) {
-                  player.inventory.push("Mask of Vanir");
-                  player.ac += 12;
-                  player.hp += 60;
-                  Combat.log(player.name + " defeats demon and gains Mask of Vanir.");
-                  message(this, "You manage to wrestle control from the demon. Your soul is now also fused the mask, making you immune to damage anywhere else.");
+              message(this, "The staircase leads to an underground hallway made of smoothly carved stone. The entire area is well lit by torches as if it were populated. At the end of the hall, you find a man dressed in the same way as the dolls, wearing a similar mask. He says that he is disappointed that a single adventurer will be the one to complete his story. He crumbles into dust, leaving only his mask."
+              , function() {
+                if(confirm("Would you like to equip the mask left on the ground.")) {
+                  message(this, "Upon equipping the mask, you feel your mind being invaded by the demon that left the mask. You are unsure if you will regain control."
+                  , function() {
+                    if(Math.random() > 0.7) {
+                      player.inventory.push("Mask of Vanir");
+                      player.ac += 12;
+                      player.hp += 60;
+                      Combat.log(player.name + " defeats demon and gains Mask of Vanir.");
+                      message(this, "You manage to wrestle control from the demon. Your soul is now also fused the mask, making you immune to damage anywhere else."
+                      , callback);
+                    } else {
+                      player.takeDamage(Infinity, "not having a soul", "Your soul was absorbed by a demon.");
+                      Combat.log(player.name + " has soul eaten by a demon.");
+                      display();
+                      message(this, "Your conciousness slowly fades as the demon absorbs your soul.", callback);
+                      return;
+                    }
+                  });
                 } else {
-                  player.takeDamage(Infinity, "not having a soul", "Your soul was absorbed by a demon.");
-                  Combat.log(player.name + " has soul eaten by a demon.");
-                  display();
-                  message(this, "Your conciousness slowly fades as the demon absorbs your soul.");
-                  return;
+                  message(this, "You leave the mask where it is in the dungeon and leave.", callback);
                 }
-              } else {
-                message(this, "You leave the mask where it is in the dungeon and leave.");
-              }
+              });
           } else {
-            message(this, "You leave emptyhanded.");
+            message(this, "You leave emptyhanded.", callback);
           }
           this.done = true;
         }
@@ -481,7 +522,7 @@ $(document).ready(function() {
           , function() {
             player.takeDamage(4, "a doll", "You died by letting a suspicious doll explode on you.");
             if(player.hp <= 0) {
-              message(this, "The doll's explosion killed you.");
+              message(this, "The doll's explosion killed you.", callback);
               display();
               return;
             } else {
@@ -498,30 +539,30 @@ $(document).ready(function() {
 
     var bridgeMan = new Event("Orc Bridge",
       "You enter a city filled with orcs. A large bridge with fewer orcs on it leads through the city. You take this bridge partway through the city. You are careful to maintain your position close the the center since a fall would be lethal.");
-    bridgeMan.run = function() {
+    bridgeMan.run = function(callback) {
       message(this, bridgeMan.text + " Partway along the bridge, you see what appears to be an orc captain weighing over 800 pounds. You hear him yell, \"Start the trolley!\"  Over the edge of the bridge, you see a small train on a path to collide with a group of 20 human slaves. The orc captain is positioned right on the edge of the bridge over the train tracks between the train and the slaves."
       , function() {
         if(confirm("Would you like to push the orc captain over the edge of the bridge?")) {
           Combat.log(player.name + " saves slaves by pushing an orc captain off a bridge.");
-          message(this, "The orc captain stops the trolley and dies in the process.");
+          message(this, "The orc captain stops the trolley and dies in the process.", callback);
         } else {
           Combat.log(player.name + " cold-bloodedly condemns slaves to death by being run over by a train.");
-          message(this, "The train hits the slaves, and the orc captain appears to be overjoyed at the gruesome sight that has unfolded below.");
+          message(this, "The train hits the slaves, and the orc captain appears to be overjoyed at the gruesome sight that has unfolded below.", callback);
         }
         this.done = true;
       });
     };
     events.push(bridgeMan);
 
-    var cobraReward = function() {
+    var cobraReward = function(callback) {
       message(this, "Inside the cabin, you find a vial filled with a murky liquid labeled \"health serum.\""
       , function() {
         if(confirm("Would you like to drink the liquid?")) {
           player.hp += 150;
-          message(this, "You feel reinvigorated.");
           Combat.log(player.name + " drinks health serum.");
+          message(this, "You feel reinvigorated.", callback);
         } else {
-          message(this, "Drinking a strange liquid is probably not a good idea, so you leave without drinking it.");
+          message(this, "Drinking a strange liquid is probably not a good idea, so you leave without drinking it.", callback);
         }
       });
     };
@@ -532,10 +573,10 @@ $(document).ready(function() {
     );
     events.push(cobra);
 
-    var squirrelReward = function() {
-      message(this, "You take the squirrel's corpse with you as a \"prize.\"")
+    var squirrelReward = function(callback) {
       Combat.log(player.name + " acquires squirrel.");
       player.inventory.push("Squirrel corpse");
+      message(this, "You take the squirrel's corpse with you as a \"prize.\"", callback);
     };
     var squirrel = new CombatEvent("Squirrel",
       "You encounter a man who is drinking beer and eating peanuts. He suddenly touches a tree then turns into a large squirrel that charges at you.",
@@ -544,11 +585,11 @@ $(document).ready(function() {
     );
     events.push(squirrel);
 
-    var rabbitReward = function() {
-      message(this, "You take the rabbit's fur with you as a \"prize.\" It will likely make you much luckier.")
+    var rabbitReward = function(callback) {
       Combat.log(player.name + " acquires rabbit.");
       player.inventory.push("Rabbit's Fur");
       player.attack += 12;
+      message(this, "You take the rabbit's fur with you as a \"prize.\" It will likely make you much luckier.", callback)
     };
     var rabbit = new CombatEvent("Rabbit",
       "You encounter a rabbit. It looks to be about 25 kilograms and has painful-looking fangs.",
@@ -557,15 +598,15 @@ $(document).ready(function() {
     );
     events.push(rabbit);
 
-    var knightReward = function() {
+    var knightReward = function(callback) {
       if(confirm("Would you like to take the knight's prized armor?")) {
         player.inventory.push("Adamantium full-plate");
         player.ac += 9;
         player.attack -= 1;
-        message(this, "Now you should be much harder to damage, but the full-plate does slightly limit your movement.");
         Combat.log(player.name + " equips adamantium full-plate.");
+        message(this, "Now you should be much harder to damage, but the full-plate does slightly limit your movement.", callback);
       } else {
-        message(this, "Why would you pass up some good armor? In any case, you leave with nothing.");
+        message(this, "Why would you pass up some good armor? In any case, you leave with nothing.", callback);
       }
     };
     var knight = new CombatEvent("Knight",
@@ -575,18 +616,18 @@ $(document).ready(function() {
     );
     events.push(knight);
 
-    var infectedReward = function() {
+    var infectedReward = function(callback) {
       if(confirm("Would you like to enter the tower?")) {
         if(confirm("Inside the tower, you find a small table. Atop it are a mastercrafted crossbow and mask. Would you like to equip them?")) {
           player.inventory.push("Mastercrafted crossbow");
           player.inventory.push("Optical mask");
           player.ac += 1;
           player.attack += 4;
-          message(this, "It seems this mask has a lense built into allowing you to magnify your view. This and the crossbow should be useful.");
+          message(this, "It seems this mask has a lense built into allowing you to magnify your view. This and the crossbow should be useful.", callback);
           Combat.log(player.name + " equips optical mask and crossbow.");
         }
       } else {
-        message(this, "You leave wondering what you could have found inside the tower.");
+        message(this, "You leave wondering what you could have found inside the tower.", callback);
       }
     };
     var infected = new CombatEvent("Infected",
@@ -666,10 +707,10 @@ $(document).ready(function() {
       "text": text,
       done: false,
 
-      run: function() {
+      run: function(callback) {
         message(this, this.text);
         done = true;
-        return;
+        callback();
       }
     }
   };
@@ -709,7 +750,7 @@ $(document).ready(function() {
     var magnitude = magnitudeMap[settings[settingChoice]];
     var runEffect = effectMap[potionLooks[looksChoice]];
 
-    healingEvent.run = function() {
+    healingEvent.run = function(callback) {
       message(this, this.name + "\n\n" + this.text
       , function() {
         var toRun = function() {
@@ -725,13 +766,17 @@ $(document).ready(function() {
             if((!speed) || isNaN(speed) || (speed < 1) || (speed > 10)) {
               player.ac -= 5;
               player.inventory.push("Physical Manifestation of your Headache earned by failing to think of a number 1-10 when drinking a " + this.name);
-              message(this, "You try to think of how fast to drink the potion, but you fail. You leave sadly with a painful, slowing headache. It will be harder to dodge now.");
+              message(this, "You try to think of how fast to drink the potion, but you fail. You leave sadly with a painful, slowing headache. It will be harder to dodge now."
+              , callback);
               return;
             }
-            runEffect(speed, magnitude, internalMap[omens[omenChoice]]);
-            this.done = true;
+            runEffect(speed, magnitude, internalMap[omens[omenChoice]], (function() {
+              this.done = true;
+              callback();
+            }).bind(this));
           } else {
-            message(this, "You leave the potion where it is and return to where you were before.");
+            message(this, "You leave the potion where it is and return to where you were before."
+            , callback);
           }
         }
         toRun.bind(this)();
@@ -740,13 +785,13 @@ $(document).ready(function() {
     return healingEvent;
   }
 
-  function CombatEvent(name, text, characters, end) {
+  function CombatEvent(name, text, characters, reward) {
     var combatEvent = new Event(name, text);
 
-    combatEvent.run = function() {
+    combatEvent.run = function(callback) {
       message(this, text
       , function() {
-        while(characters.length != 0) {
+        function combatRound() {
           var statusmessage = "You have " + player.hp + " HP left. Your enemies are:\n";
           for(var i = 0; i < characters.length; i++) {
             var character = characters[i];
@@ -754,7 +799,7 @@ $(document).ready(function() {
           }
           message(this, statusmessage, function() {
             if(prompt("If you would like to run, type \"run\" below. Otherwise you will continue to fight.") === "run") {
-              message(this, "You run away.");
+              message(this, "You run away.", callback);
               return;
             }
 
@@ -793,15 +838,19 @@ $(document).ready(function() {
               Combat.log(character.name + " is defeated.");
               characters.splice(0, 1);
             }
-
+            if(characters.length !== 0) {
+              combatRound();
+            } else {
+              this.done = true;
+              message(this, "You win the battle.", function() {
+                Combat.log(player.name + " wins battle.");
+                reward(callback);
+              });
+            }
           });
         }
-
-        this.done = true;
-        message(this, "You win the battle.", function() {
-          Combat.log(player.name + " wins battle.");
-          end();
-        });
+        combatRound = combatRound.bind(this);
+        combatRound();
       });
     };
 
