@@ -5,11 +5,12 @@
     <meta charset="UTF-8" />
     <title>Text Adventure</title>
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
-    <!-- TODO Move to external stylesheet -->
+    <!-- TODO Move to external stylesheet after uploading assignment -->
     <style>
       td {
         padding: 12px;
         text-align: center;
+        width: 120px;
       }
       .hidden {
         display: hidden;
@@ -36,6 +37,12 @@
       .red {
         color: red;
       }
+      .move-buttons {
+        text-align: center;
+      }
+      .message-container {
+        padding: 16px;
+      }
     </style>
     <script src="https://code.jquery.com/jquery-3.1.1.min.js" integrity="sha256-hVVnYaiADRTO2PzUGmuLJr8BLUSjGIZsDYGmIJLv2b8=" crossorigin="anonymous"></script>
     <script src="main.js"></script>
@@ -46,16 +53,40 @@
         <h2>Text Adventure</h2>
       </header>
       <main>
-        <p>This version of text adventure is based in JQuery.</p>
-        <div>
+        <p>This version of text adventure is based in JQuery. You may use the WASD keys, arrow keys, or the buttons below to move. The combat is a simplified version of D&amp;D combat. A 20 sided dice is rolled by the attacker, the attacker's attack bonus is added, and, if it is higher than the defender's AC, the defender takes a six sided dice plus the attacker's damage bonus worth of damage. Your inventory is displayed below the map. Your goal is to kill the final boss, Oboro.</p>
+        <div class="container move-buttons">
+          <div class="row">
+            <div class="col-md-4 col-md-offset-4">
+              <button class="btn btn-info" id="north-button">North</button>
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-md-1 col-md-offset-4">
+              <button class="btn btn-info" id="west-button">West</button>
+            </div>
+            <div class="col-md-1 col-md-offset-2">
+              <button class="btn btn-info" id="east-button">East</button>
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-md-4 col-md-offset-4">
+              <button class="btn btn-info" id="south-button">South</button>
+            </div>
+          </div>
+        </div>
+        <div class="message-container">
           <p id="message" class="hidden"></p>
-          <input type="text" placeholder="Answer here" id="input" class="hidden"/>
-          <button class="btn btn-success hidden" id="yes-button">Yes</button>
-          <button class="btn btn-danger hidden" id="no-button">No</button>
+          <div class="form-inline">
+            <input type="text" placeholder="Answer here" id="input" class="form-control hidden"/>
+            <button class="btn btn-success hidden" id="yes-button">Yes</button>
+            <button class="btn btn-danger hidden" id="no-button">No</button>
+          </div>
         </div>
         <div id="combat-log"></div>
         <h4 id="hp-display"></h4>
-        <div id="map-table" class="table table-bordered"></div>
+        <div class="container">
+        <div id="map-table" class="table"></div>
+        </div>
         <ul id="inventory-list"></ul>
       </main>
       <footer>

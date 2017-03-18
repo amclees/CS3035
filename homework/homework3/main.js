@@ -10,10 +10,34 @@ $(document).ready(function() {
   var playerBaseAc = 12;
 
   // Could use JQuery, but don't want it as a dependency later on so it is not used
+  // JQuery would be done $("~")
   var inputBox = document.getElementById("input");
   var yesButton = document.getElementById("yes-button");
   var noButton = document.getElementById("no-button");
   var messageElement = document.getElementById("message");
+
+  var northButton = document.getElementById("north-button");
+  var westButton = document.getElementById("west-button");
+  var eastButton = document.getElementById("east-button");
+  var southButton = document.getElementById("south-button");
+
+  /*
+  Also could be done using JQuery's click(functionHere) method
+  but it would then depend on JQuery, and buttons already have an attribute
+  for a click handler.
+  */
+  northButton.onclick = function() {
+    round("n");
+  }
+  westButton.onclick = function() {
+    round("w");
+  }
+  eastButton.onclick = function() {
+    round("e");
+  }
+  southButton.onclick = function() {
+    round("s");
+  }
 
   var message = function(binding, msg, callback) {
     pendingMessage = true;
@@ -89,7 +113,6 @@ $(document).ready(function() {
       display();
     };
   };
-  getInput(this, "Input something", function(choice) { console.log(choice); });
 
   var Combat = {
     log: function(entry, className) {
@@ -266,12 +289,7 @@ $(document).ready(function() {
     if(presetMove) {
       move = presetMove;
     } else {
-      do {
-        var moveText = "Please enter your move. Enter: \n  \"n\" to go north \n  \"s\" to go south \n  \"e\" to go east \n  \"w\" to go west";
-        move = prompt(moveText);
-        if(move === null) return;
-        move = move.toLowerCase().trim();
-      } while((!move) || !(move === "n" || move === "s" || move === "e" || move === "w"));
+      console.log("Round was called without a move.");
     }
 
     var destMap = {
@@ -293,43 +311,46 @@ $(document).ready(function() {
         wallDone = true;
         message(this, "Upon entering the area, you see a small wall. Beyond the wall is a large, empty area. The wall is only 4 feet, something you could easily scale, but you somehow feel that you cannot cross it."
         , function() {
-          if(confirm("Would you like to try crossing the small wall?")) {
-            message(this, "Upon closer examination, you find that the wall has a very odd texture. Even above the wall, this same texture persists. It feels almost like an enourmous amount of large shields were connected together. For some reason however, you cannot seem to see them nor anything behind them."
-            , function() {
-              var quiz = prompt("If you could choose one word to describe the behavior of these tower shields, what would it be?");
-              var wrongMessage = "Why would a word you think of be important? You return to where you were before you visited the wall.";
-              if(quiz === null) quiz = "";
-              if(quiz.trim().toLowerCase() === "broken") {
-                message(this, "When the word broken comes to your mind, you glance at your hand and notice it is invisible."
-                , function() {
-                  player.ac += 12;
-                  Combat.log(player.name + " runs into a wall at (" + dest.x + ", " + dest.y + ") and has to turn back.");
-                  display();
+          getChoice(this, "Would you like to try crossing the small wall?", function(crossWall) {
+            if(crossWall) {
+              message(this, "Upon closer examination, you find that the wall has a very odd texture. Even above the wall, this same texture persists. It feels almost like an enourmous amount of large shields were connected together. For some reason however, you cannot seem to see them nor anything behind them."
+              , function() {
+                getInput(this, "If you could choose one word to describe the behavior of these tower shields, what would it be?", function(quiz) {
+                  var wrongMessage = "Why would a word you think of be important? You return to where you were before you visited the wall.";
+                  if(quiz === null) quiz = "";
+                  if(quiz.trim().toLowerCase() === "broken") {
+                    message(this, "When the word broken comes to your mind, you glance at your hand and notice it is invisible."
+                    , function() {
+                      player.ac += 12;
+                      Combat.log(player.name + " runs into a wall at (" + dest.x + ", " + dest.y + ") and has to turn back.");
+                      display();
+                    });
+                  } else {
+                    message(this, wrongMessage, function() {
+                      Combat.log(player.name + " runs into a wall at (" + dest.x + ", " + dest.y + ") and has to turn back.");
+                      display();
+                    });
+                  }
                 });
-              } else {
-                message(this, wrongMessage, function() {
-                  Combat.log(player.name + " runs into a wall at (" + dest.x + ", " + dest.y + ") and has to turn back.");
-                  display();
-                });
-              }
-            });
-          } else {
-            player.ac = 4;
-            message(this, "Your lack of curiosity makes you more susceptible to your enemies. You might have been able to dodge before, but now you are simply a slug."
-            , function() {
-              var slugImg = document.createElement("img");
-              slugImg.src = "https://cdn.psychologytoday.com/sites/default/files/field_blog_entry_images/slug_0.jpg";
-              slugImg.alt = "slug";
-              slugImg.width = 250;
-              slugImg.height = 125;
-              var desc = document.createElement("p");
-              desc.innerText = "You became a ";
-              combatLog.appendChild(desc);
-              combatLog.appendChild(slugImg);
-              Combat.log(player.name + " runs into a wall at (" + dest.x + ", " + dest.y + ") and has to turn back.");
-              display();
-            });
-          }
+              });
+            } else {
+              player.ac = 4;
+              message(this, "Your lack of curiosity makes you more susceptible to your enemies. You might have been able to dodge before, but now you are simply a slug."
+              , function() {
+                var slugImg = document.createElement("img");
+                slugImg.src = "https://cdn.psychologytoday.com/sites/default/files/field_blog_entry_images/slug_0.jpg";
+                slugImg.alt = "slug";
+                slugImg.width = 250;
+                slugImg.height = 125;
+                var desc = document.createElement("p");
+                desc.innerText = "You became a ";
+                combatLog.appendChild(desc);
+                combatLog.appendChild(slugImg);
+                Combat.log(player.name + " runs into a wall at (" + dest.x + ", " + dest.y + ") and has to turn back.");
+                display();
+              });
+            }
+          });
         });
       } else {
         message(this, "You run into a stone wall extending into the sky as far as you can see. You turn back."
@@ -349,20 +370,22 @@ $(document).ready(function() {
     };
     if(destTile.event) {
       if(!destTile.event.done) {
-        if(!confirm("You have a feeling the area ahead might contain something interesting. Would you like to proceed?")) return;
-        destTile.event.run(function() {
-          if(gameOver) {
-            destTile.explored = true;
-            display();
-            return;
-          }
-          if(!destTile.event.done) {
-            destTile.explored = true;
-            Combat.log(player.name + " leaves (" + dest.x + ", " + dest.y + ") and returns to their previous location.");
-            display();
-            return;
-          }
-          successfulMove();
+        getChoice(this, "You have a feeling the area ahead might contain something interesting. Would you like to proceed?", function(proceed) {
+          if(!proceed) return;
+          destTile.event.run(function() {
+            if(gameOver) {
+              destTile.explored = true;
+              display();
+              return;
+            }
+            if(!destTile.event.done) {
+              destTile.explored = true;
+              Combat.log(player.name + " leaves (" + dest.x + ", " + dest.y + ") and returns to their previous location.");
+              display();
+              return;
+            }
+            successfulMove();
+          });
         });
       } else {
         successfulMove();
@@ -376,16 +399,16 @@ $(document).ready(function() {
     if(e.keyCode === 32) {
       round();
     } else if(e.keyCode === 38 || e.keyCode === 87) {
-      e.preventDefault();
+      if(e.keyCode !== 87) e.preventDefault();
       round("n");
     } else if(e.keyCode === 37 || e.keyCode === 65) {
-      e.preventDefault();
+      if(e.keyCode !== 65) e.preventDefault();
       round("w");
     } else if(e.keyCode === 40 || e.keyCode === 83) {
-      e.preventDefault();
+      if(e.keyCode !== 83) e.preventDefault();
       round("s");
     } else if(e.keyCode === 39 || e.keyCode === 68) {
-      e.preventDefault();
+      if(e.keyCode !== 68) e.preventDefault();
       round("e");
     }
   }
@@ -398,25 +421,32 @@ $(document).ready(function() {
       "You find an old wooden chest rotting away. Inside, you find a pristine katana made of a dark colored metal with an inscription written in a language unknown to you.");
     muramasa.run = function(callback) {
       message(this, muramasa.text, function() {
-        if(confirm("Would you like to wield the katana?")) {
-          player.damage += 4;
-          player.attack += 6;
-          player.inventory.push("Muramasa");
-          message(this, "The katana's balance feels perfect. You are certain you will be able to take on tougher enemies with this."
-          , function() {
-            Combat.log(player.name + " obtains Muramasa.");
-            if(confirm("Would you like to test the sharpness with your finger?")) {
-              display();
-              player.takeDamage(2, "Muramasa", "You died by touching a katana with your finger.");
-              message(this, "The katana is sharp enough that you cut deeper than planned, reaching the bone of your finger.", callback);
-              return;
-            }
-            callback();
-            this.done = true;
-          });
-        } else {
-          message(this, "Reluctantly, you leave what could have made an excellent weapon in the chest.", callback);
-        }
+        getChoice(this, "Would you like to wield the katana?"
+        , function(wieldMuramasa) {
+          if(wieldMuramasa) {
+            player.damage += 4;
+            player.attack += 6;
+            player.inventory.push("Muramasa");
+            message(this, "The katana's balance feels perfect. You are certain you will be able to take on tougher enemies with this."
+            , function() {
+              this.done = true;
+              Combat.log(player.name + " obtains Muramasa.");
+              getChoice(this, "Would you like to test the sharpness with your finger?"
+              , function(testSharpness) {
+                if(testSharpness) {
+                  display();
+                  player.takeDamage(2, "Muramasa", "You died by touching a katana with your finger.");
+                  message(this, "The katana is sharp enough that you cut deeper than planned, reaching the bone of your finger.", callback);
+                  return;
+                }
+                display();
+                callback();
+              });
+            });
+          } else {
+            message(this, "Reluctantly, you leave what could have made an excellent weapon in the chest.", callback);
+          }
+        });
       });
     };
     events.push(muramasa);
@@ -453,26 +483,37 @@ $(document).ready(function() {
       "You find a cave entrance with a door built into a cliff overlooking a lake. There is a path leading up the side of the cliff towards the cave.");
     potionBookHouse.run = function(callback) {
       message(this, this.text, function() {
-        if(confirm("Would you like to enter the cave through the door?")) {
-          message(this, "When you enter the door, you see an octopus. Each of the octopus' tentacles is holding an open book. The octopus seems to be reading multiple books at the same time. It gestures for you to take a book lying on a table between you and the octopus."
-          , function() {
-            if(confirm("Would you like to take the book?")) {
-              potionBook.run(callback);
-              this.done = true;
-            } else if(confirm("Would you like to attack the octopus?")) {
-              message(this, "The octopus parries your strike with one of its tentacles while casting a spell with its other tentacle. When it finishes casting, you can no longer breath.");
-              player.takeDamage(Infinity, "Asphyxiation", "You died after attempting to attack a peaceful but deadly octopus.");
-              display();
-              return;
-            } else {
-              message(this, "As you leave the cave, the octopus seems disappointed.", callback);
-              return;
-            }
-          });
-        } else {
-          message(this, "You leave and return to where you were, wondering what could have been in the cave.", callback);
-          return;
-        }
+        getChoice(this, "Would you like to enter the cave through the door?"
+        , function(enterCave) {
+          if(enterCave) {
+            message(this, "When you enter the door, you see an octopus. Each of the octopus' tentacles is holding an open book. The octopus seems to be reading multiple books at the same time. It gestures for you to take a book lying on a table between you and the octopus."
+            , function() {
+              getChoice(this, "Would you like to take the book?"
+              , function(takeBook) {
+                if(takeBook) {
+                  potionBook.run(callback);
+                  this.done = true;
+                } else {
+                  getChoice(this, "Would you like to attack the octopus?"
+                  , function(attackOctopus) {
+                    if(attackOctopus) {
+                      message(this, "The octopus parries your strike with one of its tentacles while casting a spell with its other tentacle. When it finishes casting, you can no longer breathe.");
+                      player.takeDamage(Infinity, "Asphyxiation", "You died after attempting to attack a peaceful but deadly octopus.");
+                      display();
+                      return;
+                    } else {
+                      message(this, "As you leave the cave, the octopus seems disappointed.", callback);
+                      return;
+                    }
+                  });
+                }
+              });
+            });
+          } else {
+            message(this, "You leave and return to where you were, wondering what could have been in the cave.", callback);
+            return;
+          }
+        });
       });
     };
     events.push(potionBookHouse);
@@ -483,56 +524,63 @@ $(document).ready(function() {
     doll.run = function(callback) {
       message(this, doll.text, function() {
         var doDungeon = function() {
-          if(confirm("Do you want to enter the dungeon under the staircase?")) {
-              message(this, "The staircase leads to an underground hallway made of smoothly carved stone. The entire area is well lit by torches as if it were populated. At the end of the hall, you find a man dressed in the same way as the dolls, wearing a similar mask. He says that he is disappointed that a single adventurer will be the one to complete his story. He crumbles into dust, leaving only his mask."
-              , function() {
-                if(confirm("Would you like to equip the mask left on the ground.")) {
-                  message(this, "Upon equipping the mask, you feel your mind being invaded by the demon that left the mask. You are unsure if you will regain control."
-                  , function() {
-                    if(Math.random() > 0.7) {
-                      player.inventory.push("Mask of Vanir");
-                      player.ac += 12;
-                      player.hp += 60;
-                      Combat.log(player.name + " defeats demon and gains Mask of Vanir.");
-                      message(this, "You manage to wrestle control from the demon. Your soul is now also fused the mask, making you immune to damage anywhere else."
-                      , callback);
+          getChoice(this, "Do you want to enter the dungeon under the staircase?"
+          , function(enterDungeon) {
+            if(enterDungeon) {
+                message(this, "The staircase leads to an underground hallway made of smoothly carved stone. The entire area is well lit by torches as if it were populated. At the end of the hall, you find a man dressed in the same way as the dolls, wearing a similar mask. He says that he is disappointed that a single adventurer will be the one to complete his story. He crumbles into dust, leaving only his mask."
+                , function() {
+                  getChoice(this, "Would you like to equip the mask left on the ground."
+                  , function(equipMask) {
+                    if(equipMask) {
+                      message(this, "Upon equipping the mask, you feel your mind being invaded by the demon that left the mask. You are unsure if you will regain control."
+                      , function() {
+                        if(Math.random() > 0.7) {
+                          player.inventory.push("Mask of Vanir");
+                          player.ac += 12;
+                          player.hp += 60;
+                          Combat.log(player.name + " defeats demon and gains Mask of Vanir.");
+                          message(this, "You manage to wrestle control from the demon. Your soul is now also fused the mask, making you immune to damage anywhere else."
+                          , callback);
+                        } else {
+                          player.takeDamage(Infinity, "not having a soul", "Your soul was absorbed by a demon.");
+                          Combat.log(player.name + " has soul eaten by a demon.");
+                          display();
+                          message(this, "Your conciousness slowly fades as the demon absorbs your soul.", callback);
+                          return;
+                        }
+                      });
                     } else {
-                      player.takeDamage(Infinity, "not having a soul", "Your soul was absorbed by a demon.");
-                      Combat.log(player.name + " has soul eaten by a demon.");
-                      display();
-                      message(this, "Your conciousness slowly fades as the demon absorbs your soul.", callback);
-                      return;
+                      message(this, "You leave the mask where it is in the dungeon and leave.", callback);
                     }
                   });
-                } else {
-                  message(this, "You leave the mask where it is in the dungeon and leave.", callback);
-                }
-              });
-          } else {
-            message(this, "You leave emptyhanded.", callback);
-          }
+                });
+            } else {
+              message(this, "You leave emptyhanded.", callback);
+            }
+          });
           this.done = true;
         }
 
-        if(confirm("Would you like to attack the doll?")) {
-          message(this, "The doll explodes upon being hit but is far enough that is does not hurt you. After it explodes, about 50 more dolls march up the staircase in the ground one by one. You manage to destroy all of them without being injured."
-          , doDungeon);
-        } else {
-          message(this, "The doll approaches you and grabs your leg. You find it rather cute, until the doll suddenly explodes."
-          , function() {
-            player.takeDamage(4, "a doll", "You died by letting a suspicious doll explode on you.");
-            if(player.hp <= 0) {
-              message(this, "The doll's explosion killed you.", callback);
-              display();
-              return;
-            } else {
-              message(this, "After the doll explodes, you destroy another 50 that appear, without taking damage."
-              , doDungeon);
-            }
-          });
-        }
-
-
+        getChoice(this, "Would you like to attack the doll?"
+        , function(attackDoll) {
+          if(attackDoll) {
+            message(this, "The doll explodes upon being hit but is far enough that is does not hurt you. After it explodes, about 50 more dolls march up the staircase in the ground one by one. You manage to destroy all of them without being injured."
+            , doDungeon);
+          } else {
+            message(this, "The doll approaches you and grabs your leg. You find it rather cute, until the doll suddenly explodes."
+            , function() {
+              player.takeDamage(4, "a doll", "You died by letting a suspicious doll explode on you.");
+              if(player.hp <= 0) {
+                message(this, "The doll's explosion killed you.", callback);
+                display();
+                return;
+              } else {
+                message(this, "After the doll explodes, you destroy another 50 that appear, without taking damage."
+                , doDungeon);
+              }
+            });
+          }
+        });
       });
     };
     events.push(doll);
@@ -542,14 +590,17 @@ $(document).ready(function() {
     bridgeMan.run = function(callback) {
       message(this, bridgeMan.text + " Partway along the bridge, you see what appears to be an orc captain weighing over 800 pounds. You hear him yell, \"Start the trolley!\"  Over the edge of the bridge, you see a small train on a path to collide with a group of 20 human slaves. The orc captain is positioned right on the edge of the bridge over the train tracks between the train and the slaves."
       , function() {
-        if(confirm("Would you like to push the orc captain over the edge of the bridge?")) {
-          Combat.log(player.name + " saves slaves by pushing an orc captain off a bridge.");
-          message(this, "The orc captain stops the trolley and dies in the process.", callback);
-        } else {
-          Combat.log(player.name + " cold-bloodedly condemns slaves to death by being run over by a train.");
-          message(this, "The train hits the slaves, and the orc captain appears to be overjoyed at the gruesome sight that has unfolded below.", callback);
-        }
-        this.done = true;
+        getChoice(this, "Would you like to push the orc captain over the edge of the bridge?"
+        , function(pushOrc) {
+          if(pushOrc) {
+            Combat.log(player.name + " saves slaves by pushing an orc captain off a bridge.");
+            message(this, "The orc captain stops the trolley and dies in the process.", callback);
+          } else {
+            Combat.log(player.name + " cold-bloodedly condemns slaves to death by being run over by a train.");
+            message(this, "The train hits the slaves, and the orc captain appears to be overjoyed at the gruesome sight that has unfolded below.", callback);
+          }
+          this.done = true;
+        });
       });
     };
     events.push(bridgeMan);
@@ -557,13 +608,16 @@ $(document).ready(function() {
     var cobraReward = function(callback) {
       message(this, "Inside the cabin, you find a vial filled with a murky liquid labeled \"health serum.\""
       , function() {
-        if(confirm("Would you like to drink the liquid?")) {
-          player.hp += 150;
-          Combat.log(player.name + " drinks health serum.");
-          message(this, "You feel reinvigorated.", callback);
-        } else {
-          message(this, "Drinking a strange liquid is probably not a good idea, so you leave without drinking it.", callback);
-        }
+        getChoice(this, "Would you like to drink the liquid?"
+        , function(drinkLiquid) {
+          if(drinkLiquid) {
+            player.hp += 150;
+            Combat.log(player.name + " drinks health serum.");
+            message(this, "You feel reinvigorated.", callback);
+          } else {
+            message(this, "Drinking a strange liquid is probably not a good idea, so you leave without drinking it.", callback);
+          }
+        });
       });
     };
     var cobra = new CombatEvent("Iron Cobra",
@@ -599,15 +653,18 @@ $(document).ready(function() {
     events.push(rabbit);
 
     var knightReward = function(callback) {
-      if(confirm("Would you like to take the knight's prized armor?")) {
-        player.inventory.push("Adamantium full-plate");
-        player.ac += 9;
-        player.attack -= 1;
-        Combat.log(player.name + " equips adamantium full-plate.");
-        message(this, "Now you should be much harder to damage, but the full-plate does slightly limit your movement.", callback);
-      } else {
-        message(this, "Why would you pass up some good armor? In any case, you leave with nothing.", callback);
-      }
+      getChoice(this, "Would you like to take the knight's prized armor?"
+      , function(takeArmor) {
+        if(takeArmor) {
+          player.inventory.push("Adamantium full-plate");
+          player.ac += 9;
+          player.attack -= 1;
+          Combat.log(player.name + " equips adamantium full-plate.");
+          message(this, "Now you should be much harder to damage, but the full-plate does slightly limit your movement.", callback);
+        } else {
+          message(this, "Why would you pass up some good armor? In any case, you leave with nothing.", callback);
+        }
+      });
     };
     var knight = new CombatEvent("Knight",
       "You encounter a knight who proclaims that he is invincible due to his adamantium armor. He draws his sword and attacks.",
@@ -617,18 +674,26 @@ $(document).ready(function() {
     events.push(knight);
 
     var infectedReward = function(callback) {
-      if(confirm("Would you like to enter the tower?")) {
-        if(confirm("Inside the tower, you find a small table. Atop it are a mastercrafted crossbow and mask. Would you like to equip them?")) {
-          player.inventory.push("Mastercrafted crossbow");
-          player.inventory.push("Optical mask");
-          player.ac += 1;
-          player.attack += 4;
-          message(this, "It seems this mask has a lense built into allowing you to magnify your view. This and the crossbow should be useful.", callback);
-          Combat.log(player.name + " equips optical mask and crossbow.");
+      getChoice(this, "Would you like to enter the tower?"
+      , function(enterTower) {
+        if(enterTower) {
+          getChoice(this, "Inside the tower, you find a small table. Atop it are a mastercrafted crossbow and mask. Would you like to equip them?"
+          , function(equipGear) {
+            if(equipGear) {
+              player.inventory.push("Mastercrafted crossbow");
+              player.inventory.push("Optical mask");
+              player.ac += 1;
+              player.attack += 4;
+              message(this, "It seems this mask has a lense built into allowing you to magnify your view. This and the crossbow should be useful.", callback);
+              Combat.log(player.name + " equips optical mask and crossbow.");
+            } else {
+              message(this, "You leave sadly.", callback);
+            }
+          });
+        } else {
+          message(this, "You leave wondering what you could have found inside the tower.", callback);
         }
-      } else {
-        message(this, "You leave wondering what you could have found inside the tower.", callback);
-      }
+      });
     };
     var infected = new CombatEvent("Infected",
       "In the middle of a ruined city, you find a tower surrounded by people. They seem to be infected with some sort of disease affecting their skin, and they all begin running toward you when they spot you.",
@@ -684,8 +749,9 @@ $(document).ready(function() {
         return Dice.d6() + this.damage;
       },
 
-      takeDamage(amount, damageSource, customMessage) {
+      takeDamage: function(amount, damageSource, customMessage) {
         this.hp -= amount;
+        display();
         Combat.log(name + " takes " + amount + " damage from " + damageSource + ", leaving " + this.hp + " HP left.");
         if(this.hp <= 0) {
           var deathMessage = document.createElement("h2");
@@ -761,23 +827,28 @@ $(document).ready(function() {
               }
           }
           display();
-          if(confirm("Would you like to drink the potion?")) {
-            var speed = prompt("Potions' effects are USUALLY stronger the faster you drink them. On a continuous scale of 1-10, you quickly would you like to drink the potion?");
-            if((!speed) || isNaN(speed) || (speed < 1) || (speed > 10)) {
-              player.ac -= 5;
-              player.inventory.push("Physical Manifestation of your Headache earned by failing to think of a number 1-10 when drinking a " + this.name);
-              message(this, "You try to think of how fast to drink the potion, but you fail. You leave sadly with a painful, slowing headache. It will be harder to dodge now."
+          getChoice(this, "Would you like to drink the potion?"
+          , function(drinkPotion) {
+            if(drinkPotion) {
+              getInput(this, "Potions' effects are USUALLY stronger the faster you drink them. On a continuous scale of 1-10, you quickly would you like to drink the potion?"
+              , function(speed) {
+                if((!speed) || isNaN(speed) || (speed < 1) || (speed > 10)) {
+                  player.ac -= 5;
+                  player.inventory.push("Physical Manifestation of your Headache earned by failing to think of a number 1-10 when drinking a " + this.name);
+                  message(this, "You try to think of how fast to drink the potion, but you fail. You leave sadly with a painful, slowing headache. It will be harder to dodge now."
+                  , callback);
+                  return;
+                }
+                runEffect(speed, magnitude, internalMap[omens[omenChoice]], (function() {
+                  this.done = true;
+                  callback();
+                }).bind(this));
+              });
+            } else {
+              message(this, "You leave the potion where it is and return to where you were before."
               , callback);
-              return;
             }
-            runEffect(speed, magnitude, internalMap[omens[omenChoice]], (function() {
-              this.done = true;
-              callback();
-            }).bind(this));
-          } else {
-            message(this, "You leave the potion where it is and return to where you were before."
-            , callback);
-          }
+          });
         }
         toRun.bind(this)();
       });
@@ -798,55 +869,57 @@ $(document).ready(function() {
             statusmessage += character.name + " with " + character.hp + " HP left.\n";
           }
           message(this, statusmessage, function() {
-            if(prompt("If you would like to run, type \"run\" below. Otherwise you will continue to fight.") === "run") {
-              message(this, "You run away.", callback);
-              return;
-            }
-
-            for(var i = 0; i < characters.length; i++) {
-              var character = characters[i];
-              var attackRoll = character.attackRoll();
-              if(attackRoll >= player.ac) {
-                var damageRoll = character.damageRoll();
-
-                if(character.name === "Oboro \"Messenger of the Heavens\"") {
-                  damageRoll += 7;
-                  Combat.log(player.name + " takes additional 7 damage due to Oboro's masterful targeting of " + player.name + "'s pressure points.");
-                }
-
-                if(Dice.d20() === 20) {
-                  damageRoll *= 3;
-                  Combat.log(character.name + " scores a critical hit.", "red");
-                }
-                if(player.takeDamage(damageRoll, character.name)) return;
-              } else {
-                Combat.log(character.name + " fails to hit " + player.name);
+            getChoice(this, "Would you like to keep fighting?", function(inputValue) {
+              if(!inputValue) {
+                message(this, "You run away.", callback);
+                return;
               }
-            }
 
-            var attackRoll = player.attackRoll();
-            var character = characters[0];
-            if(attackRoll >= character.ac) {
-              var damageRoll = player.damageRoll();
-              character.hp -= damageRoll;
-              Combat.log(character.name + " takes " + damageRoll + " damage from " + player.name + ", leaving " + character.hp + " HP left.");
-            } else {
-              Combat.log(player.name + " fails to hit " + character.name);
-            }
+              for(var i = 0; i < characters.length; i++) {
+                var character = characters[i];
+                var attackRoll = character.attackRoll();
+                if(attackRoll >= player.ac) {
+                  var damageRoll = character.damageRoll();
 
-            if(character.hp <= 0) {
-              Combat.log(character.name + " is defeated.");
-              characters.splice(0, 1);
-            }
-            if(characters.length !== 0) {
-              combatRound();
-            } else {
-              this.done = true;
-              message(this, "You win the battle.", function() {
-                Combat.log(player.name + " wins battle.");
-                reward(callback);
-              });
-            }
+                  if(character.name === "Oboro \"Messenger of the Heavens\"") {
+                    damageRoll += 7;
+                    Combat.log(player.name + " takes additional 7 damage due to Oboro's masterful targeting of " + player.name + "'s pressure points.");
+                  }
+
+                  if(Dice.d20() === 20) {
+                    damageRoll *= 3;
+                    Combat.log(character.name + " scores a critical hit.", "red");
+                  }
+                  if(player.takeDamage(damageRoll, character.name)) return;
+                } else {
+                  Combat.log(character.name + " fails to hit " + player.name);
+                }
+              }
+
+              var attackRoll = player.attackRoll();
+              var character = characters[0];
+              if(attackRoll >= character.ac) {
+                var damageRoll = player.damageRoll();
+                character.hp -= damageRoll;
+                Combat.log(character.name + " takes " + damageRoll + " damage from " + player.name + ", leaving " + character.hp + " HP left.");
+              } else {
+                Combat.log(player.name + " fails to hit " + character.name);
+              }
+
+              if(character.hp <= 0) {
+                Combat.log(character.name + " is defeated.");
+                characters.splice(0, 1);
+              }
+              if(characters.length !== 0) {
+                combatRound();
+              } else {
+                this.done = true;
+                message(this, "You win the battle.", function() {
+                  Combat.log(player.name + " wins battle.");
+                  reward(callback);
+                });
+              }
+            });
           });
         }
         combatRound = combatRound.bind(this);
@@ -953,7 +1026,7 @@ $(document).ready(function() {
     if(hpDisplay) {
       hpDisplay.innerHTML = "";
     }
-    hpDisplay.innerHTML = player.name + " has <strong>" + player.hp + " HP</strong> left.";
+    hpDisplay.innerHTML = player.name + " has " + player.ac + " AC, " + player.attack + " bonus attack, " + player.damage + " bonus damage, <strong>" + player.hp + " HP</strong> left.";
 
     var table = document.getElementById("map-table");
     if(table) {
