@@ -183,12 +183,12 @@ $(document).ready(function() {
     getChoice(this, "Would you like to play in death wish mode? (Recommended for experienced players)"
     , function(hardmode) {
       if(hardmode) {
-        var dmg = Dice.dx(8, 6);
+        var dmg = Dice.dx(5, 6);
         player.takeDamage(dmg, "lightning");
         player.ac = -20;
         player.attack = -5;
         player.damageRoll = function() { return 1; };
-        player.damage = "Always 1";
+        player.damage = "1 non-rolled";
         player.name = "Someone who underestimated hardmode";
         message(this, "Lighning instantly strikes you. You develop a severe headache and arthritis. You feel greatly fatigued. One of your arms falls off.");
       }
@@ -825,15 +825,29 @@ $(document).ready(function() {
 
     var rewards = [
       function(callback) {
-        var gemTypes = [ "Ruby", "Sapphire", "Diamond", "Topaz", "Opal", "Emerald", "Cryolite", "Azurite", "Slice of Cheese", "Chaos Emerald", "Rose Quartz" ];
-        message(this, "You discover a chest filled with a gem. You take the gem with you.");
-        player.inventory.push(gemTypes[Math.floor(Math.random() * gemTypes.length)]);
-        callback();
-      },
-      function(callback) {
         message(this, "After you kill the last monster, you discover a small pebble.");
         player.inventory.push("Mysterious Pebble");
         callback();
+      },
+      function(callback) {
+        message(this, "You find a wooden amulet with a snake pattern carved into it. It makes you feel safer.");
+        player.inventory.push("Wooden Snake Amulet");
+        player.ac += 2;
+        callback();
+      },
+      function(callback) {
+        player.inventory.push("Strip of Yuan-Ti Tail Meat");
+        message(this, "You find a strip of Yuan-Ti tail meat that belonged to your enemies."
+        , function() {
+          getChoice(this, "Would you like to take a bite?"
+          , function(takeBite) {
+            if(takeBite) {
+              player.hp += Math.ceil(Math.random() * 5);
+              message(this, "The tail meat greatly refreshes you.")
+            }
+            callback();
+          });
+        });
       },
       function(callback) {
         message(this, "You discover a map of the world.");
@@ -847,7 +861,7 @@ $(document).ready(function() {
         callback();
       },
       function(callback) {
-        message(this, "You see a lever in front of you. There is a note next to it that says it will display the real rules binding this world. Would you like to pull it?"
+        getChoice(this, "You see a lever in front of you. There is a note next to it that says it will display the real rules binding this world. Would you like to pull it?"
         , function(pullLever) {
           if(pullLever) {
             player.inventory.push("<strong>True Rulebook</strong><br /><code>"
@@ -867,10 +881,22 @@ $(document).ready(function() {
       }
     ];
 
+    var gemReward = function(callback) {
+      var gemTypes = [ "Ruby", "Sapphire", "Diamond", "Topaz", "Opal", "Emerald", "Cryolite", "Azurite", "Slice of Cheese", "Chaos Emerald", "Rose Quartz" ];
+      message(this, "You discover a chest filled with a gem. You take the gem with you.");
+      player.inventory.push(gemTypes[Math.floor(Math.random() * gemTypes.length)]);
+      callback();
+    }
+    for(var i = 0; i < Math.floor(Math.random() * 11); i++) {
+        rewards.push(gemReward);
+    }
+
     var eventsToMake = number;
     while(eventsToMake > 0) {
       eventsToMake--;
-      var reward = rewards[Math.floor(Math.random() * rewards.length)];
+      var rewardIndex = Math.floor(Math.random() * rewards.length);
+      var reward = rewards.splice(rewardIndex, 1)[0];
+
       var eventMonsters = [];
       var desiredCR = level;
       eventMonsters.push(monsters.splice(Math.floor(Math.random() * monsters.length), 1)[0]);
@@ -917,7 +943,7 @@ $(document).ready(function() {
       takeDamage: function(amount, damageSource, customMessage) {
         this.hp -= amount;
         display();
-        Combat.log(name + " takes " + amount + " damage from " + damageSource + ", leaving " + this.hp + " HP left.");
+        Combat.log(this.name + " takes " + amount + " damage from " + damageSource + ", leaving " + this.hp + " HP left.");
         if(this.hp <= 0) {
           var deathMessage = document.createElement("h2");
           deathMessage.style.color = "#3366ff";
