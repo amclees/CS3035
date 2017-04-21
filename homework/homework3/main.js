@@ -188,7 +188,7 @@ $(document).ready(function() {
         player.ac = -20;
         player.attack = -5;
         player.damageRoll = function() { return 1; };
-        player.damage = "1 non-rolled";
+        player.damage = "1";
         player.name = "Someone who underestimated hardmode";
         message(this, "Lighning instantly strikes you. You develop a severe headache and arthritis. You feel greatly fatigued. One of your arms falls off.");
       }

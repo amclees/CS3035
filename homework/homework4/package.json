@@ -1,0 +1,13 @@
+{
+  "name": "todo-list-amclees",
+  "version": "1.0.0",
+  "description": "A simple todo list",
+  "main": "server.js",
+  "dependencies": {
+    "body-parser": "^1.10.2",
+    "express": "^4.11.1",
+    "mongojs": "^0.18.1"
+  },
+  "devDependencies": {},
+  "license": "MIT",
+}

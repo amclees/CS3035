@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html ng-app="todo-list-amclees">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous" />
+    <title>Todos</title>
+  </head>
+  <body ng-controller="TodoCtrl">
+    <div class="container">
+      <h2>Todo List</h2>
+
+      <table class="table">
+        <tr>
+          <th>Title</th>
+          <th>Text</th>
+          <th>Due</th>
+          <th>Status (Done?)</th>
+          <th>Actions</th>
+        </tr>
+        <tr>
+          <td><input class="form-control" ng-model="todo.title"></td>
+          <td><input class="form-control" ng-model="todo.text"></td>
+          <td><input class="form-control" ng-model="todo.due"></td>
+          <td><input class="form-control" type="checkbox" ng-model="todo.status"></td>
+          <td><button class="btn btn-primary" ng-click="addTodo()" ng-disabled="canAdd">Add Todo</button></td>
+          <td><button class="btn btn-info" ng-click="update()">Update</button> <button class="btn btn-info" ng-click="deselect()">Clear</button></td>
+        </tr>
+        <tr ng-repeat="todo in todolist">
+          <td>{{todo.title}}</td>
+          <td>{{todo.text}}</td>
+          <td>{{todo.due}}</td>
+          <td><input class="form-control" type="checkbox" ng-model="todo.status" ng-change="push(todo)"></td>
+          <td><button class="btn btn-danger" ng-click="remove(todo._id)">Remove</button></td>
+          <td><button class="btn btn-warning" ng-click="edit(todo._id)">Edit</button></td>
+        </tr>
+      </table>
+    </div>
+  <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.4/angular.min.js"></script>
+  <script src="controllers/controller.js"></script>
+</body>
+</html>
