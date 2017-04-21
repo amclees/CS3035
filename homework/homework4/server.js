@@ -16,6 +16,7 @@ app.get("/todos", function (request, response) {
 });
 
 app.post("/todos", function (request, response) {
+  delete request.body._id;
   db.todos.insert(request.body, function(err, doc) {
     response.json(doc);
   });
