@@ -15,14 +15,14 @@
           <th>Text</th>
           <th>Due</th>
           <th>Status (Done?)</th>
-          <th>Actions</th>
+          <th colspan="2">Actions</th>
         </tr>
         <tr>
           <td><input class="form-control" ng-model="todo.title"></td>
           <td><input class="form-control" ng-model="todo.text"></td>
           <td><input class="form-control" ng-model="todo.due"></td>
           <td><input class="form-control" type="checkbox" ng-model="todo.status"></td>
-          <td><button class="btn btn-primary" ng-click="addTodo()" ng-disabled="canAdd">Add Todo</button></td>
+          <td><button class="btn btn-primary" ng-click="addTodo()">Add Todo</button></td>
           <td><button class="btn btn-info" ng-click="update()">Update</button> <button class="btn btn-info" ng-click="deselect()">Clear</button></td>
         </tr>
         <tr ng-repeat="todo in todolist">
@@ -36,6 +36,6 @@
       </table>
     </div>
   <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.4/angular.min.js"></script>
-  <script src="controllers/controller.js"></script>
+  <script src="app.js"></script>
 </body>
 </html>

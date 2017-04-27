@@ -5,7 +5,6 @@ app.controller("TodoCtrl", ["$scope", "$http", function($scope, $http) {
     $http.get("/todos/").then(function(response) {
       $scope.todolist = response.data;
       $scope.todo = {};
-      $scope.canAdd = true;
     });
   };
 
@@ -26,14 +25,12 @@ app.controller("TodoCtrl", ["$scope", "$http", function($scope, $http) {
   $scope.edit = function(id) {
     $http.get("/todos/" + id).then(function(response) {
       $scope.todo = response.data;
-      $scope.canAdd = false;
     });
   };
 
   $scope.update = function() {
     $http.put("/todos/" + $scope.todo._id, $scope.todo).then(function(response) {
       refresh();
-      $scope.canAdd = true;
     });
   };
 
@@ -45,7 +42,6 @@ app.controller("TodoCtrl", ["$scope", "$http", function($scope, $http) {
 
   $scope.deselect = function() {
     $scope.todo = {};
-    $scope.canAdd = true;
   }
 
 }]);﻿
