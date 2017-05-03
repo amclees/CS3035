@@ -1,4 +1,4 @@
-# Lab 2 - Basic Control Flow Programs
+# Lab 6 - Intro to Prolog
 
 ![Map of South America](./map.gif)
 
