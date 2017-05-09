@@ -1,4 +1,4 @@
-# Lab 6 - Prolog Lists
+# Lab 7 - Prolog Lists
 Part 1: (3pts) Do the exercise on http://www.doc.gold.ac.uk/~mas02gw/prolog_tutorial/prologpages/vars.html, to answer the following questions:
 
 Do these terms unify? After each that unifies, write which three of the rules covered in class were applied, and in which order.
